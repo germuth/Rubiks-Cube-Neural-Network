@@ -10,89 +10,60 @@ import ca.germuth.neural_network.gui.shapes.GLVertex;
 
 public class RubixCubeDrawer {
 	
-	public static GLColor toGLColor(Color col){
-		switch(col){
-			case BLUE: return new GLColor(0f, 0f, 1f); 
-			case GREEN: return new GLColor(0f, 1f, 0f); 
-			case RED: return new GLColor(1f, 0f, 0f); 
-			case WHITE: return new GLColor(1f, 1f, 1f); 
-			case ORANGE: return new GLColor(1f, 0.5f, 0f); 
-			case YELLOW: return new GLColor(1f, 1f, 0f);
-			default:
-				return null;
-		}
-	}
-	
 	public static ArrayList<GLSquare> createPuzzleModel(Cube cube) {
 		ArrayList<GLSquare> myFaces = new ArrayList<GLSquare>();
 
-		myFaces.addAll(drawFace(cube.getFace(Face.UP), cube.getsize()));
-//		ArrayList<GLShape> front = drawFace(cube.getFace(Face.FRONT), cube.getsize());
-//		
-//		myFaces.addAll();
-//		myFaces.addAll(drawFace(cube.getFace(Face.BACK), cube.getsize()));
-//		myFaces.addAll(drawFace(cube.getFace(Face.LEFT), cube.getsize()));
-//		myFaces.addAll(drawFace(cube.getFace(Face.RIGHT), cube.getsize()));
-//		myFaces.addAll(drawFace(cube.getFace(Face.DOWN), cube.getsize()));
+		myFaces.addAll(drawFace(Face.UP, cube));
 		
-
-//		ArrayList<GLShape> frontF = drawFace(front, height, width, depth);
-//		Square.rotateAll(frontF, 'X', (float) Math.PI / 2);
-//		Square.finalizeAll(frontF);
-//		myFaces.addAll(frontF);
-//
-//		ArrayList<GLShape> backF = drawFace(back, height, width, depth);
-//		Square.rotateAll(backF, 'X', (float) -Math.PI / 2);
-//		Square.finalizeAll(backF);
-//		myFaces.addAll(backF);
-//
-//		ArrayList<GLShape> leftF = drawFace(left, depth, height, width);
-//		Square.rotateAll(leftF, 'Z', (float) (Math.PI / 2));
-//		Square.finalizeAll(leftF);
-//		myFaces.addAll(leftF);
-//
-//		ArrayList<GLShape> rightF = drawFace(right, depth, height, width);
-//		Square.rotateAll(rightF, 'Z', (float) -(Math.PI / 2));
-//		Square.finalizeAll(rightF);
-//		myFaces.addAll(rightF);
-//
-//		// bottom can't be rotated while preserving orientation
-//		// must translate directly down
-//		// this might not be true somehow
-//		// definetly not true somehow
-//		ArrayList<GLShape> bottomF = drawFace(down, depth, width, height);
-//		// Square.translateAll(mBottom, 'Y', -1.40);
-//		Square.rotateAll(bottomF, 'X', (float) (Math.PI));
-//		Square.finalizeAll(bottomF);
-//		myFaces.addAll(bottomF);
+		ArrayList<GLSquare> front = drawFace(Face.FRONT, cube);
+		GLSquare.rotateAll(front, 'X', (float) Math.PI / 2);
+		myFaces.addAll(front);
+		
+		ArrayList<GLSquare> back = drawFace(Face.BACK, cube);
+		GLSquare.rotateAll(back, 'X', (float) -Math.PI / 2);
+		myFaces.addAll(back);
+		
+		ArrayList<GLSquare> left = drawFace(Face.LEFT, cube);
+		GLSquare.rotateAll(left, 'Z', (float) (Math.PI / 2));
+		myFaces.addAll(left);
+		
+		ArrayList<GLSquare> right = drawFace(Face.RIGHT, cube);
+		GLSquare.rotateAll(right, 'Z', (float) (-Math.PI / 2));
+		myFaces.addAll(right);
+		
+		ArrayList<GLSquare> bot = drawFace(Face.DOWN, cube);
+		GLSquare.rotateAll(bot, 'X', (float) Math.PI);
+		myFaces.addAll(bot);
 
 		return myFaces;
 	}
 
-	private static ArrayList<GLSquare> drawFace(Color[][] face, int size) {
+	private static ArrayList<GLSquare> drawFace(Face face, Cube cube) {
+		Color[][] faceArr = cube.getFace(face);
+		int size = cube.getsize();
+		
 		ArrayList<GLSquare> faceShapes = new ArrayList<GLSquare>();
-
 		
 		float faceLength = (240f / size);
 		// divide by 100 since entire model is with 1 of origin
-		faceLength /= 100;
+//		faceLength /= 100;
+		faceLength /= 10;
 
 		float spaceLength = 40f / (size + 1);
-		spaceLength /= 100;
+//		spaceLength /= 100;
+		spaceLength /= 10;
 
-		float height = 1.40f;
-		// adjust height based on smaller of width or height
-		height = 1.40f;
+		float height = 14.0f;
 
 		// actual topCorner is only 1.4 if current side we are drawing has maximum amount of pieces
-		float topCornerX = -1.40f;
-		float topCornerZ = -1.40f;
+		float topCornerX = -14.0f;
+		float topCornerZ = -14.0f;
 
 		// adjust topCorner depending on Local height and width
 		// largest height
 		// 1.4 x
-		topCornerX = -1.40f;
-		topCornerZ = -1.40f;
+		topCornerX = -14.0f;
+		topCornerZ = -14.0f;
 
 		topCornerX += spaceLength;
 		topCornerZ += spaceLength;
@@ -114,8 +85,7 @@ public class RubixCubeDrawer {
 								currentTopRightX, height, currentTopRightZ + faceLength),
 						new GLVertex(currentTopRightX + faceLength, height, currentTopRightZ
 								+ faceLength), new GLVertex(currentTopRightX + faceLength, height,
-								currentTopRightZ));
-				current.setColor(toGLColor(face[i][j]));
+								currentTopRightZ), face, i, j);
 				faceShapes.add(current);
 
 				currentTopRightX += faceLength + spaceLength;
@@ -124,14 +94,6 @@ public class RubixCubeDrawer {
 			// once we finish a row, we need to move down to next row
 			currentTopRightZ += faceLength + spaceLength;
 		}
-
-//		for (int i = 0; i < side.mFace.length; i++) {
-//			for (int j = 0; j < side.mFace[i].length; j++) {
-//				int index = i * side.mFace[i].length + j;
-//				Tile t1 = side.mFace[i][j];
-//				t1.setmGLShape(face.get(index));
-//			}
-//		}
 
 		return faceShapes;
 	}
