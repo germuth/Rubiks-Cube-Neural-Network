@@ -1,5 +1,15 @@
 package ca.germuth.neural_network;
-
+/**
+ * SearchNode.java
+ * 
+ * SearchNode is the object the search algorithms work with. It contains 
+ * 		the searchable object
+ * 		the parent, to remember the pathing information
+ * 		g and h Value from AStarSearch 
+ * 
+ * January 30th, 2015 
+ * @author Aaron Germuth
+ */
 public class SearchNode implements Comparable<SearchNode>{
 	private Searchable searchable;
 	private SearchNode parent;
@@ -12,7 +22,14 @@ public class SearchNode implements Comparable<SearchNode>{
 		this.gValue = sable.calcHeuristic();
 		this.parent = parent;
 	}
+
+	//order them based off their F value, smallest first
+	@Override
+	public int compareTo(SearchNode o) {
+		return new Double(this.getFValue()).compareTo(o.getFValue());
+	}	
 	
+	//getters
 	public Searchable getSearchable() {
 		return searchable;
 	}
@@ -28,10 +45,5 @@ public class SearchNode implements Comparable<SearchNode>{
 	public SearchNode getParent() {
 		return parent;
 	}
-
-	//order them based off their f value, smallest first
-	@Override
-	public int compareTo(SearchNode o) {
-		return new Double(this.getFValue()).compareTo(o.getFValue());
-	}	
 }
+

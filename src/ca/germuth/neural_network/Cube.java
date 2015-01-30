@@ -2,9 +2,12 @@ package ca.germuth.neural_network;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Random;
 
 /**
- * Cube
+ * Cube.java
+ * 
+ * 
  * 
  * @author Germuth
  */
@@ -141,7 +144,7 @@ public class Cube implements Searchable {
 	 * Rotates a face 90 degrees
 	 */
 	private void rotateFace(Color[][] face) {
-		face = (Color[][]) Utils.rotateMatrixClockwise(face);
+		face = Utils.rotateMatrixClockwise(face);
 	}
 	
 	public void turn(String moveSequence){
@@ -154,8 +157,14 @@ public class Cube implements Searchable {
 			if(Character.isAlphabetic(currChar)){
 				depth = 0;
 			}else{
-				depth = Character.getNumericValue(currChar) - 1;
-				currChar = move.charAt(1);
+				String depthStr = currChar + "";
+				int i = 1;
+				while(!Character.isAlphabetic(move.charAt(i))){
+					depthStr += move.charAt(i);
+					i++;
+				}
+				depth = Integer.parseInt(depthStr);
+				currChar = move.charAt(i);
 			}
 			
 			switch(currChar){
@@ -190,6 +199,32 @@ public class Cube implements Searchable {
 		//key is no longer valid
 		this.key = null;
 		this.heuristic = 0.0;
+	}
+	
+	public String scrambleCube(int length){
+		Random r = new Random();
+		String moveSequence = "";
+		for(int i = 0; i < length; i++){
+			switch(r.nextInt(12)){
+				case 0: moveSequence += "F "; break;
+				case 1: moveSequence += "F' "; break;
+				case 2: moveSequence += "U "; break;
+				case 3: moveSequence += "U' "; break;
+				case 4: moveSequence += "D "; break;
+				case 5: moveSequence += "D' "; break;
+				case 6: moveSequence += "L "; break;
+				case 7: moveSequence += "L' "; break;
+				case 8: moveSequence += "R "; break;
+				case 9: moveSequence += "R' "; break;
+				case 10: moveSequence += "B "; break;
+				case 11: moveSequence += "B' "; break;
+			}
+		}
+		
+		this.turn(moveSequence);
+		this.moveTaken = null;
+		this.key = null;
+		return moveSequence;
 	}
 
 	public void RTurn(int depth) {
