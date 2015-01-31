@@ -1,23 +1,15 @@
-package ca.germuth.neural_network.gui.shapes;
+package ca.germuth.neural_network.gui;
 
 /**
- * Represents a vertex in openGL
+ * GLVertex
  * 
- * @author Administrator
- *
+ * 
+ * @author Aaron Germuth
  */
 public class GLVertex {
-	/**
-	 * X coordinate
-	 */
+
 	private float x;
-	/**
-	 * Y coordinate
-	 */
 	private float y;
-	/**
-	 * Z coordinate
-	 */
 	private float z;
 
 	public GLVertex() {
@@ -38,9 +30,6 @@ public class GLVertex {
 		this.z = z;
 	}
 
-	/**
-	 * Compares two verticies by their coordinate
-	 */
 	@Override
 	public boolean equals(Object o) {
 		if (o instanceof GLVertex) {
@@ -52,6 +41,7 @@ public class GLVertex {
 		return false;
 	}
 
+	//translate point across one axis
 	public void translate(char axis, double distance) {
 		if (axis == 'X') {
 			this.x += distance;
@@ -62,13 +52,7 @@ public class GLVertex {
 		}
 	}
 
-	/**
-	 * Rotates a single point
-	 * 
-	 * @param face
-	 * @param axis
-	 * @param radians
-	 */
+	//rotate a point around an axis (X, Y, Z) radians amount
 	public void rotate(char axis, float radians) {
 		float x = this.x;
 		float y = this.y;
@@ -109,47 +93,22 @@ public class GLVertex {
 		return "(" + x + ", " + y + ", " + z + ")";
 	}
 
-	/**
-	 * @return the x
-	 */
+	//getters and setters
 	public float getX() {
 		return x;
 	}
-
-	/**
-	 * @param x
-	 *            the x to set
-	 */
 	public void setX(float x) {
 		this.x = x;
 	}
-
-	/**
-	 * @return the y
-	 */
 	public float getY() {
 		return y;
 	}
-
-	/**
-	 * @param y
-	 *            the y to set
-	 */
 	public void setY(float y) {
 		this.y = y;
 	}
-
-	/**
-	 * @return the z
-	 */
 	public float getZ() {
 		return z;
 	}
-
-	/**
-	 * @param z
-	 *            the z to set
-	 */
 	public void setZ(float z) {
 		this.z = z;
 	}

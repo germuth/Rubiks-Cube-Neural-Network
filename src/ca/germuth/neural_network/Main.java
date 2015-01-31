@@ -14,8 +14,6 @@ import ca.germuth.neural_network.gui.MyGLCanvas;
 /**
  * Main.java
  * 
- * 
- * 
  * January 30th, 2015 
  * @author Aaron Germuth
  */
@@ -44,7 +42,7 @@ public class Main {
 				case "solve":
 					solveCube(); break;
 				case "unit":
-					break;
+					unitTest(); break;
 				case "train": 
 					createExperimentData(); break;
 				case "help":
@@ -88,7 +86,6 @@ public class Main {
 	//Asks AStarSearch to solve the cube. Prints solution to output
 	public static void solveCube(){
 		long start = System.currentTimeMillis();
-		cube.setMoveTaken(null);
 		SearchNode sn = SearchFacade.runSearch(SearchType.ASTAR, cube, new Cube(cube.getsize()));
 		long end = System.currentTimeMillis();
 		System.out.println("Solution: " + getPath(sn));
@@ -142,6 +139,27 @@ public class Main {
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	//TODO you forgot unit tests
+	private static boolean unitTest(){
+		Cube c = new Cube(2);
+		c.turn("U R R");
+		SearchNode sn = SearchFacade.runSearch(SearchType.ASTAR, c, new Cube(2));
+		String answer = getPath(sn);
+		if(!answer.equals("R R U'")){
+			return false;
+		}
+		
+		c = new Cube(3);
+		c.turn("U R R");
+		sn = SearchFacade.runSearch(SearchType.ASTAR, c, new Cube(3));
+		answer = getPath(sn);
+		if(!answer.equals("R R U'")){
+			return false;
+		}
+		
+		return true;
 	}
 	
 	private static void printOptions() {

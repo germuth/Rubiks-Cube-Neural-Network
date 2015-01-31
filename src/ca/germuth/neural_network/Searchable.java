@@ -16,6 +16,8 @@ public interface Searchable{
 	public String getKey();
 	//returns the last move taken, or null if no move has been taken
 	public String getMoveTaken();
+	//erases the searchable's move history before beginning the search
+	public void eraseMoveHistory();
 	//calculate heuristic value, estimating number of moves until solution
 	public double calcHeuristic();
 }

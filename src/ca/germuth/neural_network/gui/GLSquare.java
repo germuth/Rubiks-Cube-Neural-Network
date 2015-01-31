@@ -1,19 +1,24 @@
-package ca.germuth.neural_network.gui.shapes;
+package ca.germuth.neural_network.gui;
 
 import java.util.ArrayList;
 
 import ca.germuth.neural_network.Color;
 import ca.germuth.neural_network.Cube;
 import ca.germuth.neural_network.Face;
-import ca.germuth.neural_network.gui.GLColor;
-
+/**
+ * GLSquare
+ * 
+ * Utility class for openGL to hold a square
+ * 
+ * @author Aaron Germuth
+ */
 public class GLSquare {
 	
 	//which tile of the cube this square represents
 	private Face face;
 	private int row;
 	private int col;
-	
+	//list of four verticies
 	private ArrayList<GLVertex> verticies;
 	
 	public GLSquare(GLVertex one, GLVertex two, GLVertex three, GLVertex four, Face f, int r, int c) {
@@ -62,6 +67,7 @@ public class GLSquare {
 		}
 	}
 	
+	//convert from Color Enum to OpenGL
 	public static GLColor toGLColor(Color col){
 		switch(col){
 			case RED: return new GLColor(1f, 0, 0);

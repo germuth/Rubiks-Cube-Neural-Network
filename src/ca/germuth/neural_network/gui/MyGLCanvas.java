@@ -11,10 +11,17 @@ import javax.media.opengl.awt.GLCanvas;
 import javax.media.opengl.glu.GLU;
 
 import ca.germuth.neural_network.Cube;
-import ca.germuth.neural_network.gui.shapes.GLSquare;
 
 import com.jogamp.opengl.util.FPSAnimator;
-
+/**
+ * MyGLCanvas
+ * 
+ * A Canvas object which translates a OpenGL window into Java Swing
+ * Part of JOGL library
+ * 
+ * Code 
+ * @author Aaron Germuth
+ */
 public class MyGLCanvas extends GLCanvas implements GLEventListener{
 
 	private static final long serialVersionUID = 9193099926662199837L;
@@ -40,8 +47,7 @@ public class MyGLCanvas extends GLCanvas implements GLEventListener{
 	public void init(GLAutoDrawable drawable) {
 		drawable.setGL(new DebugGL2(drawable.getGL().getGL2()));
 		GL2 gl2 = drawable.getGL().getGL2();
-		
-		// Global settings.
+		//default settings
         gl2.glEnable(GL2.GL_DEPTH_TEST);
         gl2.glDepthFunc(GL2.GL_LEQUAL);
         gl2.glDepthMask(true);
@@ -49,7 +55,7 @@ public class MyGLCanvas extends GLCanvas implements GLEventListener{
         
         glu = new GLU();
 
-		 // Start animator (which should be a field).
+		//run at 60 fps
         animator = new FPSAnimator(this, 60);
         animator.start();
 	}
@@ -58,17 +64,23 @@ public class MyGLCanvas extends GLCanvas implements GLEventListener{
 	@Override
 	public void display(GLAutoDrawable drawable) {
 		GL2 gl2 = drawable.getGL().getGL2();
-	
-		// Clear screen.
+		//clears the screen
         gl2.glClear(GL2.GL_COLOR_BUFFER_BIT | GL2.GL_DEPTH_BUFFER_BIT);
 
-        // Set camera 70 positions away down Z axis looking at origin
-        setCamera(gl2, glu, 70);
+        //move camera to +70 Z, looking at origin
+        gl2.glMatrixMode(GL2.GL_PROJECTION);
+        gl2.glLoadIdentity();
+        float widthHeightRatio = (float) getWidth() / (float) getHeight();
+        glu.gluPerspective(45, widthHeightRatio, 1, 1000);
+        glu.gluLookAt(0, 0, 70, 0, 0, 0, 0, 1, 0);
+        gl2.glMatrixMode(GL2.GL_MODELVIEW);
+        gl2.glLoadIdentity();
         
         //rotate cube 45 degrees
         gl2.glRotatef(-45f, -1f, 0f, 0f);
         
         gl2.glBegin(GL2.GL_TRIANGLES);
+        //draw each tile of rubik's cube, one at a time
         for(int i = 0; i < allFaces.size(); i++){
         	GLSquare curr = allFaces.get(i);
         	gl2.glColor3f(curr.getCurrentColor(cube).getRed(), curr.getCurrentColor(cube).getGreen(), curr.getCurrentColor(cube).getBlue());
@@ -87,8 +99,6 @@ public class MyGLCanvas extends GLCanvas implements GLEventListener{
 
 	@Override
 	public void dispose(GLAutoDrawable arg0) {
-		// TODO Auto-generated method stub
-		
 	}
 
 	@Override
@@ -96,19 +106,4 @@ public class MyGLCanvas extends GLCanvas implements GLEventListener{
 		GL2 gl2 = drawable.getGL().getGL2();
         gl2.glViewport(0, 0, width, height);
 	}
-
-	private void setCamera(GL2 gl2, GLU glu, float distance) {
-        // Change to projection matrix.
-        gl2.glMatrixMode(GL2.GL_PROJECTION);
-        gl2.glLoadIdentity();
-
-        // Perspective.
-        float widthHeightRatio = (float) getWidth() / (float) getHeight();
-        glu.gluPerspective(45, widthHeightRatio, 1, 1000);
-        glu.gluLookAt(0, 0, distance, 0, 0, 0, 0, 1, 0);
-
-        // Change back to model view matrix.
-        gl2.glMatrixMode(GL2.GL_MODELVIEW);
-        gl2.glLoadIdentity();
-    }
 }

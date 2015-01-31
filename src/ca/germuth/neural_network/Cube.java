@@ -7,12 +7,15 @@ import java.util.Random;
 /**
  * Cube.java
  * 
- * 
+ * Implements any size NxNxN rubik's cube. All turns of the cube
+ * using the SiGN notation.
  * 
  * @author Germuth
  */
 public class Cube implements Searchable {
 
+	//Creates a new 2d array of length size*size
+	//All elements initialized to Color c
 	private static Color[][] createCubeFace(Color c, int size) {
 		Color[][] arr = new Color[size][size];
 		for (int i = 0; i < arr.length; i++) {
@@ -23,17 +26,6 @@ public class Cube implements Searchable {
 		return arr;
 	}
 
-	private static boolean isSolved(Color[][] face) {
-		for (int i = 0; i < face.length; i++) {
-			for (int j = 0; j < face[i].length; j++) {
-				if (face[0][0] != face[i][j]) {
-					return false;
-				}
-			}
-		}
-		return true;
-	}
-
 	private int size;
 	private Color[][] up;
 	private Color[][] front;
@@ -42,13 +34,12 @@ public class Cube implements Searchable {
 	private Color[][] down;
 	private Color[][] back;
 	private String moveTaken;
-	//key is null until getKey is called
+	
+	//these values are saved to avoid recalculating
 	private String key = null;
 	private double heuristic = 0.0;
 
 	public Cube(int size) {
-		// TODO is this good, should it throw exception rather than crash the program?
-		assert (size > 1);
 		this.size = size;
 		this.moveTaken = null;
 		this.setSolved();
@@ -66,11 +57,6 @@ public class Cube implements Searchable {
 		this.key = another.key;
 		this.heuristic = another.heuristic;
 	}
-	
-	public boolean isSolved() {
-		return isSolved(up) && isSolved(front) && isSolved(left) && isSolved(right)
-				&& isSolved(back) && isSolved(down);
-	}
 
 	public void setSolved() {
 		this.up = createCubeFace(Color.WHITE, size);
@@ -81,18 +67,6 @@ public class Cube implements Searchable {
 		this.back = createCubeFace(Color.BLUE, size);
 	}
 
-	private Color[][] faceToArray(Face f){
-		switch(f){
-			case UP: return this.up;
-			case DOWN: return this.down;
-			case LEFT: return this.left;
-			case RIGHT: return this.right;
-			case FRONT: return this.front;
-			case BACK: return this.back;
-			default:
-				return null;
-		}
-	}
 	public Color getColor(Face f, int row, int col){
 		return faceToArray(f)[row][col];
 	}
@@ -101,7 +75,10 @@ public class Cube implements Searchable {
 		faceToArray(f)[row][col] = color;
 	}
 
-	private void topRotation(int layer) {
+	//Performs a horizontal rotation
+	//when layer == 0, a U turn is done
+	//when layer == size, a D' turn is done 
+	private void horizontalRotation(int layer) {
 		for(int j = 0; j < size; j++){
 			Color temp = getColor(Face.FRONT, layer, j);
 			setColor(Face.FRONT, layer, j, 
@@ -114,7 +91,10 @@ public class Cube implements Searchable {
 		}
 	}
 
-	private void sideRotation(int layer) {
+	//Performs a vertical rotation
+	//when layer == 0, an R turn
+	//when layer == size, L' turn
+	private void verticalRotation(int layer) {
 		for(int j = 0; j < size; j++){
 			Color temp = getColor(Face.UP, j, layer);
 			setColor(Face.UP, j, layer, 
@@ -127,7 +107,10 @@ public class Cube implements Searchable {
 		}
 	}
 	
-	private void frontRotation(int layer) {
+	//Performs a front rotation
+	//when layer == 0, F turn
+	//when layer == size, B turn
+	private void intoScreenRotation(int layer) {
 		for(int j = 0; j < size; j++){
 			Color temp = getColor(Face.UP, layer, j);
 			setColor(Face.UP, layer, j, 
@@ -140,13 +123,13 @@ public class Cube implements Searchable {
 		}
 	}
 
-	/**
-	 * Rotates a face 90 degrees
-	 */
+	//rotates a face of the cube 90 degrees clockwise
 	private void rotateFace(Color[][] face) {
 		face = Utils.rotateMatrixClockwise(face);
 	}
 	
+	//Performs a turn based a string sequence of moves,
+	//encoded as per SiGN specification with spaces in between
 	public void turn(String moveSequence){
 		String[] moves = moveSequence.split(" ");
 		for(String move: moves){
@@ -180,6 +163,8 @@ public class Cube implements Searchable {
 		}
 		
 	}
+	
+	//Turns the cube based on a Face, Direction, and depth
 	public void turn(Face move, Direction d, int depth){
 		//do 1 move if CW, 3 moves if CCW
 		int repeats = (d == Direction.CW) ? 1 : 3;
@@ -201,6 +186,8 @@ public class Cube implements Searchable {
 		this.heuristic = 0.0;
 	}
 	
+	//Randomly applies moves to the cube
+	//returns the moves perform in String sequence as per SiGN specification
 	public String scrambleCube(int length){
 		Random r = new Random();
 		String moveSequence = "";
@@ -222,13 +209,13 @@ public class Cube implements Searchable {
 		}
 		
 		this.turn(moveSequence);
-		this.moveTaken = null;
-		this.key = null;
+		this.eraseMoveHistory();
 		return moveSequence;
 	}
 
+	//Below Methods Performs each turn of SiGN
 	public void RTurn(int depth) {
-		this.sideRotation(size - depth - 1);
+		this.verticalRotation(size - depth - 1);
 		
 		if (depth == 0) {
 			this.rotateFace(this.right);
@@ -238,7 +225,7 @@ public class Cube implements Searchable {
 	
 	public void LTurn(int depth){
 		for(int i = 0; i < 3; i++){
-			this.sideRotation(depth);
+			this.verticalRotation(depth);
 		}
 		if(depth == 0){
 			this.rotateFace(this.left);
@@ -247,7 +234,7 @@ public class Cube implements Searchable {
 	}
 
 	public void UTurn(int depth) {
-		this.topRotation(depth);
+		this.horizontalRotation(depth);
 
 		if (depth == 0) {
 			this.rotateFace(this.up);
@@ -257,7 +244,7 @@ public class Cube implements Searchable {
 
 	public void DTurn(int depth){
 		for(int i = 0; i < 3; i++){
-			this.topRotation(size - depth - 1);
+			this.horizontalRotation(size - depth - 1);
 		}
 		if(depth == 0){
 			this.rotateFace(this.down);
@@ -266,7 +253,7 @@ public class Cube implements Searchable {
 	}
 	
 	public void FTurn(int depth) {
-		this.frontRotation((size - 1) - depth);
+		this.intoScreenRotation((size - 1) - depth);
 		
 		this.rotateFace(this.front);
 		this.moveTaken = (depth + 1) + "F";
@@ -274,7 +261,7 @@ public class Cube implements Searchable {
 
 	public void BTurn(int depth){
 		for(int i = 0; i < 3; i++){
-			this.frontRotation(depth);
+			this.intoScreenRotation(depth);
 		}
 		
 		if(depth == 0){
@@ -282,16 +269,9 @@ public class Cube implements Searchable {
 		}
 		this.moveTaken = (depth + 1) + "B";
 	}
-
-	public int getsize() {
-		return size;
-	}
-
-	public Color[][] getFace(Face f){
-		return this.faceToArray(f);
-	}
 	
-	//TODO not quite right since turn(Face.UP, depth == 3) doesn't end up turning Face.DOWN
+	//Generates all possible moves that could be taken from the current state, 
+	//and creates a new cube with this moved applied. Returns the list of cubes
 	@Override
 	public ArrayList<Searchable> getChildren() {
 		ArrayList<Searchable> children = new ArrayList<Searchable>();
@@ -309,29 +289,23 @@ public class Cube implements Searchable {
 		return children;
 	}
 
+	//Returns a unique string representation of the current state of this rubik's cube
 	@Override
 	public String getKey() {
 		if(key == null){
-			//TODO change to UTils methods
-			
-			//TODO have to pick key method
-			//RAM	3000	3000	2800
-			//TIME	33		34		26
-			//second method (encode cube)
-			//RAM	3000	3000	3000
-			//TIME	30		30		30
-			//actually i might have mixed them up
 			key = Arrays.deepToString(this.back) + //blue 
 					Arrays.deepToString(this.front) + //green
 					Arrays.deepToString(this.left) + //orange
 					Arrays.deepToString(this.right) + //red
 					Arrays.deepToString(this.up) + //white
 					Arrays.deepToString(this.down); //yellow
-//			key = Utils.encodeCube(this);
 		}
 		return key;
 	}
 
+	//Calculates a heuristic estimating the number of moves required to 
+	//solve the cube. Finds the average amount of distinct colors on
+	//each side to estimate completeness
 	@Override
 	public double calcHeuristic() {
 		if(heuristic == 0.0){
@@ -344,17 +318,36 @@ public class Cube implements Searchable {
 			heuristic = (heuristic / 6) - 1;
 		}
 		return heuristic;
-//		return (Utils.inversionCount(getKey().toCharArray()) - 7500 )/ 200.0;
 	}
 
+	//used to erase the moves taken before searhcing the cube
+	public void eraseMoveHistory(){
+		this.moveTaken = null;
+	}
+	
+	//Returns the last move performed by this cube
 	@Override
 	public String getMoveTaken() {
 		return moveTaken;
 	}
-	
-	//TODO temporary, will be private and called only by scramble
-	public void setMoveTaken(String str){
-		this.moveTaken = str;
+	public int getsize() {
+		return size;
+	}
+
+	private Color[][] faceToArray(Face f){
+		switch(f){
+			case UP: return this.up;
+			case DOWN: return this.down;
+			case LEFT: return this.left;
+			case RIGHT: return this.right;
+			case FRONT: return this.front;
+			case BACK: return this.back;
+			default:
+				return null;
+		}
 	}
 	
+	public Color[][] getFace(Face f){
+		return this.faceToArray(f);
+	}
 }

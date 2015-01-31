@@ -1,10 +1,13 @@
 package ca.germuth.neural_network.gui;
 
 /**
- * Represents a colour in the openGL 3d model
+ * GLColor
+ * 
+ * Represents a Color in OpenGL
+ * 
+ * Red green blue are float values from 0 -> 1.0
  * 
  * @author Administrator
- *
  */
 public class GLColor {
 
@@ -18,9 +21,6 @@ public class GLColor {
 		this.blue = blue;
 	}
 
-	/**
-	 * Testes whether two colours are equal by their red, green, blue and alpha values
-	 */
 	@Override
 	public boolean equals(Object o) {
 		if (o instanceof GLColor) {
@@ -32,23 +32,13 @@ public class GLColor {
 		return false;
 	}
 
-	/**
-	 * @return the red
-	 */
+	//getters
 	public float getRed() {
 		return red;
 	}
-
-	/**
-	 * @return the green
-	 */
 	public float getGreen() {
 		return green;
 	}
-
-	/**
-	 * @return the blue
-	 */
 	public float getBlue() {
 		return blue;
 	}

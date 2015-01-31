@@ -2,14 +2,26 @@ package ca.germuth.neural_network.gui;
 
 import java.util.ArrayList;
 
-import ca.germuth.neural_network.Color;
 import ca.germuth.neural_network.Cube;
 import ca.germuth.neural_network.Face;
-import ca.germuth.neural_network.gui.shapes.GLSquare;
-import ca.germuth.neural_network.gui.shapes.GLVertex;
-
+/**
+ * RubixCubeDrawer
+ * 
+ * Static class containing drawing operations for a NxNxN rubik's cube
+ * 
+ * @author Aaron Germuth
+ */
 public class RubixCubeDrawer {
 	
+	//total size of a face of the rubiks cube
+	private static final float TOTAL_FACE_LENGTH = 24f;
+	//total size of the spaces between each face of a rubiks cube
+	private static final float TOTAL_SPACE_LENGTH = 4f;
+	//specifies how large the cube, ie distance from middle to each face
+	private static final float TOTAL_CUBE_SIZE = 14f;
+	
+	//in order to create a cube, we can simply draw one face of the cube
+	//6 times and rotate a different way each time
 	public static ArrayList<GLSquare> createPuzzleModel(Cube cube) {
 		ArrayList<GLSquare> myFaces = new ArrayList<GLSquare>();
 
@@ -38,32 +50,21 @@ public class RubixCubeDrawer {
 		return myFaces;
 	}
 
+	//draws a single face of the cube
 	private static ArrayList<GLSquare> drawFace(Face face, Cube cube) {
-		Color[][] faceArr = cube.getFace(face);
 		int size = cube.getsize();
 		
 		ArrayList<GLSquare> faceShapes = new ArrayList<GLSquare>();
 		
-		float faceLength = (240f / size);
-		// divide by 100 since entire model is with 1 of origin
-//		faceLength /= 100;
-		faceLength /= 10;
+		//how large each tile of the face is
+		float tileLength = (TOTAL_FACE_LENGTH / size);
 
-		float spaceLength = 40f / (size + 1);
-//		spaceLength /= 100;
-		spaceLength /= 10;
+		//there are size + 1 spaces, since there is one at either corner
+		float spaceLength = TOTAL_SPACE_LENGTH / (size + 1);
 
-		float height = 14.0f;
-
-		// actual topCorner is only 1.4 if current side we are drawing has maximum amount of pieces
-		float topCornerX = -14.0f;
-		float topCornerZ = -14.0f;
-
-		// adjust topCorner depending on Local height and width
-		// largest height
-		// 1.4 x
-		topCornerX = -14.0f;
-		topCornerZ = -14.0f;
+		float height = TOTAL_CUBE_SIZE;
+		float topCornerX = -TOTAL_CUBE_SIZE;
+		float topCornerZ = -TOTAL_CUBE_SIZE;
 
 		topCornerX += spaceLength;
 		topCornerZ += spaceLength;
@@ -82,17 +83,17 @@ public class RubixCubeDrawer {
 				// make face
 				GLSquare current = new GLSquare(
 						new GLVertex(currentTopRightX, height, currentTopRightZ), new GLVertex(
-								currentTopRightX, height, currentTopRightZ + faceLength),
-						new GLVertex(currentTopRightX + faceLength, height, currentTopRightZ
-								+ faceLength), new GLVertex(currentTopRightX + faceLength, height,
+								currentTopRightX, height, currentTopRightZ + tileLength),
+						new GLVertex(currentTopRightX + tileLength, height, currentTopRightZ
+								+ tileLength), new GLVertex(currentTopRightX + tileLength, height,
 								currentTopRightZ), face, i, j);
 				faceShapes.add(current);
 
-				currentTopRightX += faceLength + spaceLength;
+				currentTopRightX += tileLength + spaceLength;
 			}
 
 			// once we finish a row, we need to move down to next row
-			currentTopRightZ += faceLength + spaceLength;
+			currentTopRightZ += tileLength + spaceLength;
 		}
 
 		return faceShapes;
