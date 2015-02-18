@@ -25,7 +25,7 @@ public class Main {
 	final static int PIXEL_WIDTH = 480;
 	
 	private static Cube cube;
-	public static void main(String[] args){
+	public static void main(String[] args) {
 		Scanner s = new Scanner(System.in);
 		Scanner lineScanner;
 		printOptions();

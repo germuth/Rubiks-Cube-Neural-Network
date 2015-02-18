@@ -11,5 +11,6 @@ public interface Trainable {
 	public double OuputToHiddenEdge(int k, int j);
 	public double OutputToBiasEdge(int k);
 	public double HiddenToInputEdge(int j, int i);
-	public double BiasToHiddenEdge(int j);
+	public double BiasToHiddenEdge(int j, int jLayer);
+	public double HiddenToHiddenEdge(int j1, int j1Layer, int j2, int j2Layer);
 }

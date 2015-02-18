@@ -14,155 +14,186 @@ public class NeuralNetwork implements Trainable{
 	//value for bias neuron
 	private static final double BIAS_ACT = 1.0;
 	
-	private Double[][] firstHiddenToInput;
-	private ArrayList<Double[][]> hiddenToHidden;
-	private Double[][] outputToLastHidden;
-	private ArrayList<Double[]> biasToHidden;
-	private Double[] biasToOutput;
+	/**
+	 * Contains edge weights for every edge in the network, except the bias neuron
+	 * For example:
+	 * 	Edge between input neuron i, and first layer of hidden neuron j
+	 *		netWorkLayers.get(0)[i][j]
+	 *	Edge between hidden neuron j1 in hidden layer 2, and hidden neuron j2 in hidden layer 3
+	 *		netWorkLayers.get(2)[j1][j2]
+	 */
+	private ArrayList<double[][]> networkEdgeWeights;
+	/**
+	 * Contains edge weights for every edge from each hidden layer to bias neuron, 
+	 * and output layer to bias neuron
+	 * For example:
+	 * 	Edge between first hidden layer neuron j and bias neuron
+	 * 		toBiasNeuron.get(0)[j]
+	 *	Edge between output layer neuron k and bias neuron
+	 *		toBiasNeuron.get(last_index)[k]
+	 */
+	private ArrayList<double[]> toBiasEdgeWeights;
+	
 	private Random rng;
-	//input    * hidden
-	//hidden_i * hidden_j
-	//hidden_j * output
-	//hidden_i * bias
-	//hidden_j * bias
-	//output   * bias
 	
 	public NeuralNetwork(int numInput, int numOutput, int numHiddenLayer, int[] hiddenLayerSize){
-		this.firstHiddenToInput = new Double[hiddenLayerSize[0]][numInput];
 		
-		this.hiddenToHidden = new ArrayList<Double[][]>(numHiddenLayer);
-		for(int secondLayer = 1; secondLayer < numHiddenLayer; secondLayer++){
-			int secondLayerSize = hiddenLayerSize[secondLayer];
-			int firstLayerSize = hiddenLayerSize[secondLayer - 1];
-			this.hiddenToHidden.add(new Double[secondLayerSize][firstLayerSize]);
+		this.networkEdgeWeights = new ArrayList<double[][]>();
+		//add input to first hidden layer
+		this.networkEdgeWeights.add(new double[numInput][hiddenLayerSize[0]]);
+		//add hidden layer A to hidden layer B
+		for(int a = 1; a < numHiddenLayer; a++){
+			this.networkEdgeWeights.add(new double[hiddenLayerSize[a-1]][hiddenLayerSize[a]]);
 		}
+		//add last hidden layer to output layer
+		this.networkEdgeWeights.add(new double[hiddenLayerSize[numHiddenLayer-1]][numOutput]);
 		
-		this.outputToLastHidden = new Double[numOutput][hiddenLayerSize[numHiddenLayer - 1]];
-		
-		this.biasToHidden = new ArrayList<Double[]>(numHiddenLayer);
-		for(int hidden = 0; hidden < numHiddenLayer; hidden++){
-			this.biasToHidden.add(new Double[hiddenLayerSize[hidden]]);
+		this.toBiasEdgeWeights = new ArrayList<double[]>();
+		//add edge from each hidden layer to bias
+		for(int a = 0; a < numHiddenLayer; a++){
+			this.toBiasEdgeWeights.add(new double[hiddenLayerSize[a]]);
 		}
-		
-		this.biasToOutput = new Double[numOutput];
+		//add edges from output to bias layer
+		this.toBiasEdgeWeights.add(new double[numOutput]);
 		
 		this.rng = new Random();
 		this.randomizeAllEdgeWeights();
 	}
 	
+	// net input = input
+	// act input = net input
+
+	// net hidden = sum( Wji*ACTi + Wjb*Bias)
+	// act hidden = A * tanh(B * NETj)
+
+	// net output = sum( Wkj*ACTj + Wkb*Bias)
+	// act output = A * tanh(B * NETk)
+
+	// return act output
 	@Override
-	public double[] feedForward(double[] input){
+	public double[] feedForward(double[] input) {
 		//make sure it is exactly the same length
 		if(input.length != this.getNumInputNeurons()){
 			throw new IllegalArgumentException("More input features than input neurons");
 		}
 		
-		//net input = input
-		//act input = net input
+		ArrayList<double[]> ACT_values = new ArrayList<double[]>();
+		for(int a = 0; a < getTotalLayers(); a++){
+			ACT_values.add(new double[getLayerSize(a)]);
+		}
 		
-		//net hidden = sum( Wji*ACTi + Wjb*Bias)
-		double[] NET_hiddenFirstLayer = new double[this.getHiddenLayerSize(0)];
+		//for input NET == ACT == input
+		for(int i = 0; i < input.length; i++){
+			ACT_values.get(0)[i] = input[i];
+		}
 		
-		//for each neuron in first layer, calculate NET
-		for(int j = 0; j < this.getHiddenLayerSize(0); j++){
-			//calculate NET_hidden for this neuron in the first layer
-			//by calculating a sum over each input neuron
-			for(int i = 0; i < this.getNumInputNeurons(); i++){
-				//Wji * ACTi
-				NET_hiddenFirstLayer[j] += this.HiddenToInputEdge(j, i) * input[i];
-				NET_hiddenFirstLayer[j] += this.BiasToHiddenEdge(j) * BIAS_ACT;
+		//repeatedly calculate ACT and NET values for each layer
+		//already have ACT values for input layer 
+		for(int currentLayer = 1; currentLayer < getTotalLayers(); currentLayer++){
+			for(int neuron = 0; neuron < getLayerSize(currentLayer); neuron++){
+				//calculate NET for each neuron
+				double NET = 0;
+				
+				//sum edge weights from last layer and bias neuron
+				for(int prevNeuron = 0; prevNeuron < getLayerSize(currentLayer - 1); prevNeuron++){
+					//TODO temp for debug
+					double partOne = networkEdgeWeights.get(currentLayer - 1)[prevNeuron][neuron];
+					partOne *= ACT_values.get(currentLayer -1 )[prevNeuron];
+					double partTwo = toBiasEdgeWeights.get(currentLayer - 1)[neuron];
+					partTwo *= BIAS_ACT;
+					
+					NET += (partOne + partTwo);
+//					NET += networkEdgeWeights.get(currentLayer - 1)[prevNeuron][neuron] * ACT_values.get(currentLayer -1 )[prevNeuron] 
+//							+ toBiasEdgeWeights.get(currentLayer - 1)[neuron] * BIAS_ACT;
+				}
+				
+				ACT_values.get(currentLayer)[neuron] = A_CONSTANT * Math.tanh(B_CONSTANT * NET);
 			}
 		}
 		
-		//act hidden = A * tanh(B * NETj)
-		
-		//net output = sum( Wkj*ACTj + Wkb*Bias)
-		//act output = A * tanh(B * NETk)
-		
-		//return act output
-		return null;
+		return ACT_values.get(ACT_values.size() - 1);
 	}
 	
 	@Override
 	public void randomizeAllEdgeWeights() {
-
-		randomizeAll(this.firstHiddenToInput);
-
-		for(int k = 0; k < hiddenToHidden.size(); k++){
-			randomizeAll(this.hiddenToHidden.get(k));
+		for(double[][] layerEdges: this.networkEdgeWeights){
+			randomizeAll(layerEdges);
 		}
-		
-		randomizeAll(this.outputToLastHidden);
-		
-		for(int j = 0; j < biasToHidden.size(); j++){
-			randomizeAll(this.biasToHidden.get(j));
+		for(double[] toBiasEdges: this.toBiasEdgeWeights){
+			randomizeAll(toBiasEdges);
 		}
-		
-		randomizeAll(this.biasToOutput);
 	}
 
 	@Override
 	public double OuputToHiddenEdge(int k, int j) {
-		// TODO Auto-generated method stub
-		return 0;
+		double[][] hiddenToOutputEdges = this.networkEdgeWeights.get(this.networkEdgeWeights.size());
+		return hiddenToOutputEdges[j][k];
 	}
 
 	@Override
 	public double OutputToBiasEdge(int k) {
-		// TODO Auto-generated method stub
-		return 0;
+		double[] outputToBiasEdges = this.toBiasEdgeWeights.get(this.toBiasEdgeWeights.size());
+		return outputToBiasEdges[k];
 	}
 
 	@Override
 	public double HiddenToInputEdge(int j, int i) {
-		// TODO Auto-generated method stub
-		return 0;
+		double[][] inputToHiddenEdges = this.networkEdgeWeights.get(0);
+		return inputToHiddenEdges[i][j];
 	}
 	
 	@Override
-	public double BiasToHiddenEdge(int j) {
-		// TODO Auto-generated method stub
-		return 0;
+	public double BiasToHiddenEdge(int j, int jLayer) {
+		double[] hiddenToBiasEdges = this.toBiasEdgeWeights.get(jLayer);
+		return hiddenToBiasEdges[j];
 	}
 	
-	//Returns random value in [-1, 1]
-	private double getRandomEdgeWeight(){
+	//TODO j2Layer not even required though...
+	//TODO also are my hidden layers backwards here...
+	@Override
+	public double HiddenToHiddenEdge(int j1, int j1Layer, int j2, int j2Layer){
+		double [][] hiddenToHiddenEdges = this.networkEdgeWeights.get(j1Layer);
+		return hiddenToHiddenEdges[j1][j2];
+	}
+	
+	// Returns random value in [-1, 1]
+	private double getRandomEdgeWeight() {
 		return (this.rng.nextDouble() * 2) - 1.0;
 	}
-	
-	private void randomizeAll(Double[] weights){
-		for(int i = 0; i < weights.length; i++){
+
+	private void randomizeAll(double[] weights) {
+		for (int i = 0; i < weights.length; i++) {
 			weights[i] = getRandomEdgeWeight();
 		}
 	}
-	
-	private void randomizeAll(Double[][] weights){
-		for(int i = 0; i < weights.length; i++){
+
+	private void randomizeAll(double[][] weights) {
+		for (int i = 0; i < weights.length; i++) {
 			randomizeAll(weights[i]);
 		}
 	}
 	
+	
 	public int getNumInputNeurons(){
-		return this.firstHiddenToInput[0].length;
+		return getLayerSize(0);
 	}
 	
 	public int getNumOutputNeurons(){
-		return this.outputToLastHidden.length;
+		return getLayerSize(networkEdgeWeights.size());
 	}
 	
-	public int getNumHiddenLayers(){
-		return this.hiddenToHidden.size() - 1;
-	}
-	
-	public int getHiddenLayerSize(int layer){
-		return this.hiddenToHidden.get(layer).length;
-	}
-	
-	public int[] getHiddenLayerSizes(){
-		int arr[] = new int[getNumHiddenLayers()];
-		for(int i = 0; i < arr.length; i++){
-			arr[i] = this.hiddenToHidden.get(i).length;
+	public int getLayerSize(int layer){
+		//if output layer
+		if(layer == networkEdgeWeights.size()){
+			return networkEdgeWeights.get(networkEdgeWeights.size()-1)[0].length;
+		}else{
+			return networkEdgeWeights.get(layer).length;			
 		}
-		return arr;
 	}
+	
+	public int getTotalLayers(){
+		return networkEdgeWeights.size() + 1;
+	}
+	
+	
 }
