@@ -1,4 +1,6 @@
-package ca.germuth.neural_network;
+package ca.germuth.neural_network.search;
+
+
 /**
  * SearchFacade.java
  * 

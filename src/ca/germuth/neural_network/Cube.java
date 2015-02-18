@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
 
+import ca.germuth.neural_network.search.Searchable;
+
 /**
  * Cube.java
  * 

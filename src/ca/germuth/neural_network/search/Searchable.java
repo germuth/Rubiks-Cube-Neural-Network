@@ -1,4 +1,4 @@
-package ca.germuth.neural_network;
+package ca.germuth.neural_network.search;
 
 import java.util.ArrayList;
 /**

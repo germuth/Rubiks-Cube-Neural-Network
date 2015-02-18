@@ -10,7 +10,11 @@ import java.util.Scanner;
 import javax.media.opengl.GLCapabilities;
 import javax.media.opengl.GLProfile;
 import javax.swing.JFrame;
+
 import ca.germuth.neural_network.gui.MyGLCanvas;
+import ca.germuth.neural_network.search.SearchFacade;
+import ca.germuth.neural_network.search.SearchNode;
+import ca.germuth.neural_network.search.SearchType;
 /**
  * Main.java
  * 
