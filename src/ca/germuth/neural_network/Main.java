@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Scanner;
 
 import javax.media.opengl.GLCapabilities;
@@ -15,6 +16,7 @@ import ca.germuth.neural_network.gui.MyGLCanvas;
 import ca.germuth.neural_network.search.SearchFacade;
 import ca.germuth.neural_network.search.SearchNode;
 import ca.germuth.neural_network.search.SearchType;
+import ca.germuth.neural_network.solvable.XOR;
 /**
  * Main.java
  * 
@@ -55,6 +57,9 @@ public class Main {
 					System.out.println("A number can be prepended to turn the inner slices rather than the outer slices");
 					System.out.println("Therefore \"2R'\" turns the second slice on the right hand side of a 4x4 clockwise");
 					break;
+				case "nn":
+					nn();
+					break;
 				case "quit":
 					System.exit(0); break;
 			}
@@ -64,6 +69,24 @@ public class Main {
 		
 		s.close();
 		System.exit(0);
+	}
+	
+	private static void nn(){
+		int[] arr = {2};
+		NeuralNetwork nn = new NeuralNetwork(new XOR(), 2, 1, 1, arr);
+		ArrayList<TrainingData> training = CSVHandler.read("data.csv");
+		ArrayList<TrainingData> testing = CSVHandler.read("data.csv");
+		StochasticBackPropagation.run(nn, training, testing);
+		double[] arr2 = {-1.0, -1.0};
+		System.out.println(Arrays.toString(arr2) + " " + Arrays.toString(nn.feedForward(arr2)));
+		double[] arr3 = {-1.0, 1.0};
+		System.out.println(Arrays.toString(arr3) + " " + Arrays.toString(nn.feedForward(arr3)));
+		double[] arr4 = {1.0, -1.0};
+		System.out.println(Arrays.toString(arr4) + " " + Arrays.toString(nn.feedForward(arr4)));
+		double[] arr5 = {1.0, 1.0};
+		System.out.println(Arrays.toString(arr5) + " " + Arrays.toString(nn.feedForward(arr5)));
+		System.exit(0);
+
 	}
 	
 	//Create cube and initialize openGL window
