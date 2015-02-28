@@ -6,7 +6,7 @@ public interface Trainable {
 	
 	public double[] feedForward(double[] input);
 	
-	public Solvable getSolveable();
+	public Solvable getSolvable();
 	
 	public int getNumLayers();
 	public int getLayerSize(int layer); 

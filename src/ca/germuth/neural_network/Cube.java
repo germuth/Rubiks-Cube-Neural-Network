@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Random;
 
 import ca.germuth.neural_network.search.Searchable;
+import ca.germuth.neural_network.solvable.Solvable;
 
 /**
  * Cube.java
@@ -14,7 +15,7 @@ import ca.germuth.neural_network.search.Searchable;
  * 
  * @author Germuth
  */
-public class Cube implements Searchable {
+public class Cube implements Searchable, Solvable {
 
 	//Creates a new 2d array of length size*size
 	//All elements initialized to Color c
@@ -60,6 +61,21 @@ public class Cube implements Searchable {
 		this.heuristic = another.heuristic;
 	}
 
+	public boolean isSolved() {
+		return isFaceSolved(this.up) && isFaceSolved(this.down) && isFaceSolved(this.left)
+				&& isFaceSolved(this.right) && isFaceSolved(this.left) && isFaceSolved(this.right);
+	}
+	
+	private boolean isFaceSolved(Color[][] arr) {
+		for(int i = 0; i < arr.length; i++){
+			for(int j = 0; j < arr[i].length; j++){
+				if( ! arr[i][j].equals( arr[0][0] ) ){
+					return false;
+				}
+			}
+		}
+		return true;
+	}
 	public void setSolved() {
 		this.up = createCubeFace(Color.WHITE, size);
 		this.front = createCubeFace(Color.GREEN, size);
@@ -127,7 +143,13 @@ public class Cube implements Searchable {
 
 	//rotates a face of the cube 90 degrees clockwise
 	private void rotateFace(Color[][] face) {
-		face = Utils.rotateMatrixClockwise(face);
+		Color[][] copy = Utils.rotateMatrixClockwise(face);
+		for(int i = 0; i < copy.length; i++){
+			for(int j = 0; j < copy[i].length; j++){
+				face[i][j] = copy[i][j];
+			}
+		}
+		
 	}
 	
 	//Performs a turn based a string sequence of moves,
@@ -351,5 +373,133 @@ public class Cube implements Searchable {
 	
 	public Color[][] getFace(Face f){
 		return this.faceToArray(f);
+	}
+
+	@Override
+	public double[] mapTrainingInput(String trainInput) {
+		double[] input = new double[trainInput.length() * 3];
+		int inputIndex = 0;
+		for(int ch = 0; ch < trainInput.length(); ch++){
+			char curr = trainInput.charAt(ch);
+			switch(curr){
+				case 'W':
+					input[inputIndex++] = -1.0;
+					input[inputIndex++] = -1.0;
+					input[inputIndex++] = -1.0;
+					break;
+				case 'B':
+					input[inputIndex++] = -1.0;
+					input[inputIndex++] = -1.0;
+					input[inputIndex++] =  1.0;
+					break;
+				case 'R':
+					input[inputIndex++] = -1.0;
+					input[inputIndex++] =  1.0;
+					input[inputIndex++] = -1.0;
+					break;
+				case 'G':
+					input[inputIndex++] = -1.0;
+					input[inputIndex++] =  1.0;
+					input[inputIndex++] =  1.0;
+					break;
+				case 'Y':
+					input[inputIndex++] =  1.0;
+					input[inputIndex++] = -1.0;
+					input[inputIndex++] = -1.0;
+					break;
+				case 'O':
+					input[inputIndex++] =  1.0;
+					input[inputIndex++] = -1.0;
+					input[inputIndex++] =  1.0;
+					break;
+				default:
+					throw new IllegalArgumentException("Training input contains unknown character");
+			}
+		}
+		return input;
+	}
+
+	@Override
+	public double[] mapTrainingOutput(String trainOutput) {
+		double[] moves = new double[4];
+		int index = 0;
+		switch(trainOutput.trim().charAt(0)){
+			case 'R':
+				moves[index++] = -1.0;
+				moves[index++] = -1.0;
+				moves[index++] = -1.0;
+				break;
+			case 'L':
+				moves[index++] =  1.0;
+				moves[index++] = -1.0;
+				moves[index++] = -1.0;
+				break;
+			case 'U':
+				moves[index++] = -1.0;
+				moves[index++] =  1.0;
+				moves[index++] = -1.0;
+				break;
+			case 'D':
+				moves[index++] =  1.0;
+				moves[index++] =  1.0;
+				moves[index++] = -1.0;
+				break;
+			case 'F':
+				moves[index++] = -1.0;
+				moves[index++] = -1.0;
+				moves[index++] =  1.0;
+				break;
+			case 'B':
+				moves[index++] =  1.0;
+				moves[index++] = -1.0;
+				moves[index++] =  1.0;
+				break;
+				
+		}
+		if(trainOutput.contains("'")){
+			moves[index++] = -1.0;
+		}else{
+			moves[index++] = 1.0;
+		}
+		return moves;
+	}
+	
+	public int round(double d){
+		if(d < 0){
+			return 0;
+		}else{
+			return 1;
+		}
+	}
+	
+	public String getMoveString(double[] output) {
+		double first = output[0];
+		double second = output[1];
+		double third = output[2];
+		double fourth = output[3];
+
+		int bitArray = round(first);
+		bitArray += round(second) * 2;
+		bitArray += round(third) * 4;
+		boolean reversed = round(fourth) == 1 ? false : true;
+
+		String move = null;
+		switch (bitArray) {
+			case 0 : move = "R"; break;
+			case 1: move = "L"; break;
+			case 2: move = "U"; break;
+			case 3: move = "D"; break;
+			case 4: move = "F"; break;
+			case 5: move = "B"; break;
+			default:
+//				throw new IllegalArgumentException("Output did not map to one of 6 moves");
+				System.out.println("neural network has no idea whats its doing");
+				move = "U";
+		}
+
+		if (reversed) {
+			move += "'";
+		}
+		return move;
 	}
 }

@@ -71,6 +71,13 @@ public class NeuralNetwork implements Trainable{
 		
 		this.rng = new Random();
 		this.randomizeAllEdgeWeights();
+		
+		latestNET = new ArrayList<double[]>();
+		latestACT = new ArrayList<double[]>();
+		for(int a = 0; a < getNumLayers(); a++){
+			latestNET.add(new double[getLayerSize(a)]);
+			latestACT.add(new double[getLayerSize(a)]);
+		}
 	}
 	
 	// net input = input
@@ -88,13 +95,6 @@ public class NeuralNetwork implements Trainable{
 		//make sure it is exactly the same length
 		if(input.length != this.getNumInputNeurons()){
 			throw new IllegalArgumentException("More input features than input neurons");
-		}
-		
-		latestNET = new ArrayList<double[]>();
-		latestACT = new ArrayList<double[]>();
-		for(int a = 0; a < getNumLayers(); a++){
-			latestNET.add(new double[getLayerSize(a)]);
-			latestACT.add(new double[getLayerSize(a)]);
 		}
 		
 		//for input NET == ACT == input
@@ -116,9 +116,6 @@ public class NeuralNetwork implements Trainable{
 					double partOne = networkEdgeWeights.get(currentLayer - 1)[prevNeuron][neuron];
 					partOne *= latestACT.get(currentLayer -1 )[prevNeuron];
 					NET += partOne;
-//					NET += (partOne + partTwo);
-//					NET += networkEdgeWeights.get(currentLayer - 1)[prevNeuron][neuron] * ACT_values.get(currentLayer -1 )[prevNeuron] 
-//							+ toBiasEdgeWeights.get(currentLayer - 1)[neuron] * BIAS_ACT;
 				}
 				//TODO: change variable names: NET is only added once, it is considered as an extra input neuron
 				double partTwo = toBiasEdgeWeights.get(currentLayer - 1)[neuron];
@@ -229,7 +226,7 @@ public class NeuralNetwork implements Trainable{
 
 	@Override
 	public double outputNET(int k) {
-		return latestNET.get(getNumLayers())[k];
+		return latestNET.get(getNumLayers() - 1)[k];
 	}
 
 	@Override
@@ -244,7 +241,7 @@ public class NeuralNetwork implements Trainable{
 
 	@Override
 	public double outputACT(int k) {
-		return latestACT.get(getNumLayers())[k];
+		return latestACT.get(getNumLayers() - 1)[k];
 	}
 
 	@Override
@@ -297,7 +294,7 @@ public class NeuralNetwork implements Trainable{
 	}
 
 	@Override
-	public Solvable getSolveable() {
+	public Solvable getSolvable() {
 		return this.solveable;
 	}
 }
