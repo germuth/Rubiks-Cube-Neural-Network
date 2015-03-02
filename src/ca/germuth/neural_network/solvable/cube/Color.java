@@ -1,4 +1,4 @@
-package ca.germuth.neural_network;
+package ca.germuth.neural_network.solvable.cube;
 /**
  * Color.java
  * 

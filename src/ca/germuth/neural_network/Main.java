@@ -20,46 +20,23 @@ import ca.germuth.neural_network.search.SearchFacade;
 import ca.germuth.neural_network.search.SearchNode;
 import ca.germuth.neural_network.search.SearchType;
 import ca.germuth.neural_network.solvable.XOR;
+import ca.germuth.neural_network.solvable.cube.Cube;
+import ca.germuth.neural_network.trainable.NeuralNetwork;
+import ca.germuth.neural_network.trainable.StochasticBackPropagation;
+import ca.germuth.neural_network.trainable.TrainingData;
 /**
+ * CPSC 371 Project Phase 2
  * Main.java
  * 
- * January 30th, 2015 
+ * February 27th, 2015 
  * @author Aaron Germuth
  */
-
-//nn output double[] doesn't account for all possibilities, trying to figure out something. right now there just map to some move
-//should train with only data for 12 possible moves, and try to solve 1 away. IT SHOULD BE ABLE TO BE PERFECT
-//gonna graph the error every training iteraiton and see at what amount of iterations it stops being useful
-	// right now The whole thing is in a try PrintWriter loop. More iteraitons is definetly good, and actually makes adifferent
-	// but my neural network is still completely retarded, i should just start doing his experiments. it will make my neural network not bad, and do the assignment
-	// also it should be noted that my neural network is this retarded even when all scrambles are 1 move, and the training data consists perfectly of all of THE ONLY 12 cases!!!!!
-
-//running experiment in order to find optimal triple value
-//will use this optimal triple value as base point, and start exploring in 2D field in both directions from here
-//also this entire experiment is done on only getting the neural network to learn how to solve 1 move on a 2x2
-//im so depressed right now
-
-//OMGGGGGGGGGGGGGGGGGGG
-//IT TURNS OUT THE NEURAL NETWORK IS NOT RETARDED, ITS ACTUALLY JUST ME 
-//PROBABLY
-//MAPPING FROM -1 and 1s to R/L/B/F/U etc turns is screwed up on one side or the other or even both or something
-//!
-
-//Can train the network to perfect accuarcy with only 2 moves
-//however giving the training data all possible cases for 3 moves it is not very trainable
-//trying multiple layers with some hope it might work
-//can also try changing input or output or both to not be binary but rather like 1 0 0 or 0 1 0 or 0 0 1 kind of thing, might be easier to discern for network...
-
-//need to actually make SBP work with multiple hidden layers
-//need to give up on solving 3 and try actual experiment maybe??
-//need to allow neural network to be saved and restored from disk
-//need to unit test
-//experiment
-//comments TODO
 public class Main {
 	final static int PIXEL_WIDTH = 480;
 	
 	private static Cube cube;
+	private static NeuralNetwork nn;
+	private static String nnType;
 	public static void main(String[] args) {
 		Scanner s = new Scanner(System.in);
 		Scanner lineScanner;
@@ -71,21 +48,54 @@ public class Main {
 			lineScanner = new Scanner(inputLine);
 			switch(lineScanner.next().toLowerCase()){
 				case "create":
-					createCube(lineScanner.nextInt()); break;
-				case "scramble":
-					System.out.println(cube.scrambleCube(lineScanner.nextInt())); break;
-				case "move":
-					while(lineScanner.hasNext()){
-						cube.turn(lineScanner.next()); 
-					} break;
+					createNeuralNetwork(lineScanner.next(), s); break;
 				case "solve":
 					solveCube(); break;
 				case "unit":
 					unitTest(); break;
-				case "data": 
-					createExperimentData(); break;
-				case "train": 
-					trainNeuralNetwork(); break;
+				case "traindata":
+					trainData(lineScanner.next()); break;
+				case "train":
+					if(nn == null){
+						System.out.println("You have not created a neural network");
+						break;
+					}
+					String type = nn.getSolvable() instanceof XOR ? "XOR": "CUBE";
+					if(type.equals("XOR")){
+						System.out.println("Please Enter Error Threshold (Recommended: 0.05):");						
+					} else { 
+						System.out.println("Please Enter Error Threshold (Recommended: 200):");
+					}
+					double error_thres = s.nextDouble();
+					System.out.println("Please Enter Learning Rate (Recommended: 0.005):");
+					double learn_rate = s.nextDouble();
+					System.out.println("Please Enter Training Iteraitons (Recommended: >100,000):");
+					int train_iter = s.nextInt();
+					System.out.println("Please Enter Training epochs (Recommended: >25):");
+					int train_epoch= s.nextInt();
+					trainNeuralNetwork(type, error_thres, learn_rate, train_iter, train_epoch);
+					break;
+				case "test":
+					testNeuralNetwork(s); break;
+				case "save":
+					if(nn != null){
+						FileHandler.writeNeuralNetwork(nn, (nn.getSolvable() instanceof XOR) ? "XOR": "CUBE");
+					}else{
+						System.out.println("No current neural network");
+					}
+					System.out.println("Saved succesfully");
+					break;
+				case "load":
+					nnType = lineScanner.next();
+					nn = FileHandler.readNeuralNetwork(nnType); 
+					if(nnType.equals("XOR")){
+						nn.setSolveable(new XOR());
+					}else{
+						createCube(2);
+						nn.setSolveable(cube);
+					}
+					System.out.println("Loaded successfully");
+					break;
 				case "experiment":
 					experiment(); break;
 				case "help":
@@ -94,150 +104,127 @@ public class Main {
 					System.out.println("A number can be prepended to turn the inner slices rather than the outer slices");
 					System.out.println("Therefore \"2R'\" turns the second slice on the right hand side of a 4x4 clockwise");
 					break;
-				case "nn":
-					nn();
-					break;
-				case "nnn":
-					nnn();
-					break;
 				case "quit":
 					System.exit(0); break;
 			}
 			
-			inputLine = s.nextLine().trim();			
+			inputLine = s.nextLine().trim();
+			if(inputLine.isEmpty()){
+				inputLine = s.nextLine().trim();
+			}
 		}
 		
 		s.close();
 		System.exit(0);
 	}
 	
-	private static void trainNeuralNetwork(){
-		nnn();
+	private static void createNeuralNetwork(String type, Scanner scan){
+		
+		if(type.equals("CUBE")){
+			System.out.println("Please Enter Hidden Layer Config: ('12 12' makes two layers of size 12)");
+			System.out.println("Recommend 36");
+			String[] strin = scan.nextLine().split(" ");
+			int[] sizes = new int[strin.length];
+			for(int i = 0; i < strin.length; i++){
+				sizes[i] = Integer.parseInt(strin[i]);
+			}
+			createCube(2);
+			nn = new NeuralNetwork(cube, 4*6*3, 4, sizes.length, sizes);
+			nnType = "CUBE";
+		}else{
+			int[] arr = {2};
+			nn = new NeuralNetwork(new XOR(), 2, 1, 1, arr);
+			nnType = "XOR";
+		}
+		System.out.println("Neural Network Created");
 	}
 	
-	private static void experiment(){
-		int[] hiddenLayerSize = 	{5, 12, 24};//{24, 32, 40, 48, 56};//{20, 24, 28, 32};//{12, 20, 28, 36, 44, 52};//12
-		int[] hiddenLayerSize_2 = 	{5, 12, 24};
-		double[] learningRate = {0.01};//{0.005, 0.01, 0.02};//{0.01, 0.05, 0.1, 0.2, 0.3};//0.05
-		//0.01 learning rate is best
-		int[] trainingIterations = {100000};//{50000, 75000, 100000};//{5000, 10000, 50000};//{5000};//5000
-		//training iterations had biggest effect
-		int[] trainingEpoch = {100};//{10, 50, 100};//100 actually does better, but 50 is really close
-		//TODO i don't think this is what he meant
-		//he wanted epochs to be the repeats...
-		int REPEATS = 1;
-		int[] hidSize = new int[2];
-		
-		File f = new File("new_data_6.csv");
-		try {
-			f.createNewFile();
-			PrintWriter pw = new PrintWriter(f);
-			
-			for(int i = 0; i < hiddenLayerSize.length; i++){
-				int HIDDEN_LAYER_SIZE = hiddenLayerSize[i];
-				int HIDDEN_LAYER_SIZE_2 = hiddenLayerSize_2[i];
-				
-				hidSize[0] = HIDDEN_LAYER_SIZE;
-				hidSize[1] = HIDDEN_LAYER_SIZE_2;
-				
-				for(int j = 0; j < learningRate.length; j++){
-					double LEARNING_RATE = learningRate[j];
-					for(int k = 0; k < trainingIterations.length; k++){
-						int TRAINING_ITERATIONS = trainingIterations[k];
-						for(int l = 0; l < trainingEpoch.length; l++){
-							int TRAINING_EPOCH = trainingEpoch[l];
-							
-							System.out.println(i + " " + j + " " + k + " " + l);
-							pw.print(i + " " + j + " " + k + " " + l + ",");
-							double MIN_ERROR = Double.MAX_VALUE;
-							
-							for(int r = 0; r < REPEATS; r++){
-								
-								NeuralNetwork nn = new NeuralNetwork(new Cube(2), 4*6*3, 4, 2, hidSize);
-								ArrayList<TrainingData> training = CSVHandler.read("data.csv");
-								ArrayList<TrainingData> testing = CSVHandler.read("data.csv");
-								double err = StochasticBackPropagation.runForMinimum(nn, training, testing, LEARNING_RATE, TRAINING_ITERATIONS, TRAINING_EPOCH);
-								
-								if(err < MIN_ERROR){
-									MIN_ERROR = err;
-								}
-								
-							}
-							
-							pw.println(MIN_ERROR + ",");
-						}
-						
+	private static void trainData(String type) {
+		ArrayList<TrainingData> lines = new ArrayList<TrainingData>();
+		if (type.equals("CUBE")) {
+			HashMap<String, Boolean> visited = new HashMap<String, Boolean>();
+			for (int k = 1; k < 8; k++) {
+				for (int i = 0; i < 50; i++) {
+					Cube experimentCube = new Cube(2);
+					experimentCube.scrambleCube(k);
+					if (experimentCube.isSolved()) {
+						continue;
+					}
+					// replace unnecessary characters: ' ' ',' '[' ']
+					String state = experimentCube.getKey().replaceAll(" |,|\\[|\\]", "");
+
+					// unique key->value pairs
+					if (!visited.containsKey(state)) {
+						visited.put(state, true);
+
+						SearchNode sn = SearchFacade.runSearch(SearchType.ASTAR, experimentCube,
+								new Cube(2));
+						String moveToMake = getPath(sn).split(" ")[0];
+						lines.add(new TrainingData(state, moveToMake));
 					}
 				}
 			}
-			pw.flush();
-			pw.close();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
+		} else if (type.equals("XOR")) {
+			lines.add(new TrainingData("-1 -1","-1"));
+			lines.add(new TrainingData( "1 -1", "1"));
+			lines.add(new TrainingData("-1 1",  "1"));
+			lines.add(new TrainingData( "1 1", "-1"));
 		}
 		
+		FileHandler.writeTrainingData(type, lines);
+		System.out.println("Done creating training data");
 	}
-	
-	private static void nn(){
-		int[] arr = {2};
-		NeuralNetwork nn = new NeuralNetwork(new XOR(), 2, 1, 1, arr);
-		ArrayList<TrainingData> training = CSVHandler.read("data.csv");
-		ArrayList<TrainingData> testing = CSVHandler.read("data.csv");
-		StochasticBackPropagation.runForThreshold(nn, training, testing);
-		double[] arr2 = {-1.0, -1.0};
-		System.out.println(Arrays.toString(arr2) + " " + Arrays.toString(nn.feedForward(arr2)));
-		double[] arr3 = {-1.0, 1.0};
-		System.out.println(Arrays.toString(arr3) + " " + Arrays.toString(nn.feedForward(arr3)));
-		double[] arr4 = {1.0, -1.0};
-		System.out.println(Arrays.toString(arr4) + " " + Arrays.toString(nn.feedForward(arr4)));
-		double[] arr5 = {1.0, 1.0};
-		System.out.println(Arrays.toString(arr5) + " " + Arrays.toString(nn.feedForward(arr5)));
-		System.exit(0);
 
+	private static void trainNeuralNetwork(String type, double ERROR_THRESHOLD, double LEARN_RATE,
+			int train_iter, int train_epoch){
+		ArrayList<TrainingData> training = FileHandler.readTrainingData(type);
+		ArrayList<TrainingData> testing = FileHandler.readTrainingData(type);
+
+		double err = StochasticBackPropagation.runForThreshold(nn, training, testing, ERROR_THRESHOLD, 
+				LEARN_RATE, train_iter, train_epoch);
+		if(err < ERROR_THRESHOLD){
+			System.out.println("Neural Network Trained Successfully with " + err + " error");
+		}else{
+			System.out.println("Neural Network Trained UnSuccessfully with " + err + " error");
+		}
 	}
 	
-	private static void nnn(){
-		Scanner waitForUser = new Scanner(System.in);
-		int[] arr = {24};//{4*6};//{4*6*3};
-		NeuralNetwork nn = new NeuralNetwork(new Cube(2), 4*6*3, 4, 1, arr);
-		ArrayList<TrainingData> training = CSVHandler.read("data.csv");
-		ArrayList<TrainingData> testing = CSVHandler.read("data.csv");
-//		System.out.println(StochasticBackPropagation.runForMinimum(nn, training, testing, 0.01, 100000, 100));
-		System.out.println(StochasticBackPropagation.runForThreshold(nn, training, testing));
-		createCube(2);
-		waitForUser.next();
-		
+	private static void testNeuralNetwork(Scanner scan){
 		Random r = new Random();
 		while(true){
 			
-			cube.scrambleCube(r.nextInt(3) + 1);
-//			cube.turn("F'");
-			
-			while(!cube.isSolved()){
-				String cubeState = cube.getKey().replaceAll(" |,|\\[|\\]", "");
-				double[] moveArr = nn.feedForward( cube.mapTrainingInput(cubeState) );
+			if(nn.getSolvable() instanceof Cube){
+				cube.scrambleCube(r.nextInt(8) + 1);
 				
-				for (TrainingData test : testing) {
-					if(cubeState.equals(test.getInput())){
-						// convert training data to scaled input/output, ie -> [-1, 1]
-						double[] inputs = cube.mapTrainingInput(test.getInput());
-						double[] expectedOutput = cube.mapTrainingOutput(test.getOutput());
-						inputs[0] = 100000;
+				while(!cube.isSolved()){
+					String cubeState = cube.getKey().replaceAll(" |,|\\[|\\]", "");
+					double[] moveArr = nn.feedForward( cube.mapTrainingInput(cubeState) );
+					
+					String move = cube.getMoveString(moveArr);
+					System.out.println("Neural Network Says " + move);
+					System.out.println("Would you like to perform this move (Y/N)");
+					if(!scan.next().trim().toUpperCase().equals("Y")){
+						break;
+					} else{
+						cube.turn(move);						
 					}
 				}
-				
-				String move = cube.getMoveString(moveArr);
-				System.out.println("");
-				System.out.println("Neural Network Says " + move);
-				waitForUser.next();
-				cube.turn(move);
+			}else{
+				System.out.println("Enter an input (for ex. -1 1)");
+				double[] input = new double[2];
+				input[0] = scan.nextDouble();
+				input[1] = scan.nextDouble();
+				double[] move = nn.feedForward(input);
+				System.out.println("Neural Network Says " + move[0]);
 			}
-			System.out.println("SOLVED! GO AGAIN?");
-			if(!waitForUser.next().trim().toUpperCase().equals("Y")){
+			
+			System.out.println("Try again? (Y/N)");
+			if(!scan.next().trim().toUpperCase().equals("Y")){
 				break;
 			}
+		}
+		if(cube != null){
+			cube.setSolved();
 		}
 	}
 	
@@ -291,131 +278,129 @@ public class Main {
 		return sb.toString();
 	}
 	
-	//Runs experiment and prints training data to file
-	private static void createExperimentData(){
-		File f = new File("data.csv");
-		try {
-			PrintWriter pw = new PrintWriter(f);
-			String[] move = {"R", "R'", "L", "L'", "U", "U'", "D", "D'", "F", "F'", "B", "B'"};
-			HashMap<String, Boolean> visited = new HashMap<String, Boolean>();
-			for(int i = 0; i < 12; i++){
-				Cube ex = new Cube(2);
-				ex.turn(move[i]);
-				
-				String state = ex.getKey().replaceAll(" |,|\\[|\\]", "");
-				visited.put(state, true);
-				pw.print(state + ", ");
-				SearchNode sn = SearchFacade.runSearch(SearchType.ASTAR, ex, new Cube(2));
-				String moveSequence = getPath(sn);
-				Scanner temp = new Scanner(moveSequence);
-				pw.println(temp.next());
-				temp.close();
-			}
-			for(int i = 0; i < 12; i++){
-				for(int j = 0; j < 12; j++){
-					Cube ex = new Cube(2);
-					ex.turn(move[i]);
-					ex.turn(move[j]);
-					if(!ex.isSolved()){
-						String state = ex.getKey().replaceAll(" |,|\\[|\\]", "");
-						//no duplicates
-						if(!visited.containsKey(state)){
-							visited.put(state, true);
-							pw.print(state + ", ");
-							SearchNode sn = SearchFacade.runSearch(SearchType.ASTAR, ex, new Cube(2));
-							String moveSequence = getPath(sn);
-							Scanner temp = new Scanner(moveSequence);
-							pw.println(temp.next());
-							temp.close();
-						}
-					}
-				}
-			}
-			for(int i = 0; i < 12; i++){
-				for(int j = 0; j < 12; j++){
-					for(int k = 0; k < 12; k++){
-						Cube ex = new Cube(2);
-						ex.turn(move[i]);
-						ex.turn(move[j]);
-						ex.turn(move[k]);
-						if(!ex.isSolved()){
-							String state = ex.getKey().replaceAll(" |,|\\[|\\]", "");
-							//no duplicates
-							if(!visited.containsKey(state)){
-								visited.put(state, true);
-								pw.print(state + ", ");
-								SearchNode sn = SearchFacade.runSearch(SearchType.ASTAR, ex, new Cube(2));
-								String moveSequence = getPath(sn);
-								Scanner temp = new Scanner(moveSequence);
-								pw.println(temp.next());
-								temp.close();
-							}
-						}
-						
-					}
-				}
-			}
-			//TODO
-//			for(int k = 1; k < 8; k++){
-//				System.out.println(k);
-//				for(int i = 0; i < 50; i++){
-//					Cube experimentCube = new Cube(2);
-//					experimentCube.scrambleCube(k);
-//					if(experimentCube.isSolved()){
-//						continue;
-//					}
-//					//replace unnecessary characters: ' ' ',' '[' ']
-//					String state = experimentCube.getKey().replaceAll(" |,|\\[|\\]", "");
-//					pw.print(state + ", ");
-//					
-//					SearchNode sn = SearchFacade.runSearch(SearchType.ASTAR, experimentCube, new Cube(2));
-//					String moveSequence = getPath(sn);
-//					//get first move
-//					Scanner temp = new Scanner(moveSequence);
-//					pw.println(temp.next());
-//					temp.close();
-//				}
-//			}
-			pw.flush();
-			pw.close();
-			System.out.println("data.csv successfully written");
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	//TODO you forgot unit tests
-	private static boolean unitTest(){
-		Cube c = new Cube(2);
-		c.turn("U R R");
-		SearchNode sn = SearchFacade.runSearch(SearchType.ASTAR, c, new Cube(2));
-		String answer = getPath(sn);
-		if(!answer.equals("R R U'")){
-			return false;
+	private static void unitTest(){
+		ArrayList<TrainingData> trainingXOR = FileHandler.readTrainingData("XOR");
+		ArrayList<TrainingData> testingXOR = FileHandler.readTrainingData("XOR");
+		ArrayList<TrainingData> training = FileHandler.readTrainingData("CUBE");
+		ArrayList<TrainingData> testing = FileHandler.readTrainingData("CUBE");
+		
+		int[] arr = {2};
+		NeuralNetwork nnet = new NeuralNetwork(new XOR(), 2, 1, 1, arr);
+		double err = StochasticBackPropagation.runForThreshold(nnet, trainingXOR, testingXOR, 0.000001, 0.01, 50000, 25);
+		System.out.println(err);
+		if(err > 0.001){
+			System.out.println("UNIT TEST FAIL: XOR had bad error");
 		}
 		
-		c = new Cube(3);
-		c.turn("U R R");
-		sn = SearchFacade.runSearch(SearchType.ASTAR, c, new Cube(3));
-		answer = getPath(sn);
-		if(!answer.equals("R R U'")){
-			return false;
+		int[] arr2 = {12};
+		NeuralNetwork nnet2 = new NeuralNetwork(new Cube(2), 4*6*3, 4, 1, arr2);
+		err = StochasticBackPropagation.runForThreshold(nnet2, training, testing, 1200, 0.01, 50000, 25);
+		if(err > 3000){
+			System.out.println("UNIT TEST FAIL: CUBE had bad error");
 		}
 		
-		return true;
+		NeuralNetwork nnet3 = FileHandler.readNeuralNetwork("XOR");
+		if(nnet3 == null){
+			System.out.println("UNIT TEST FAIL: XOR unable to be read from file");
+		}
+		double[] inputs = {-1, -1};
+		double[] outputs = nnet3.feedForward(inputs);
+		if(outputs.length != 1){
+			System.out.println("UNIT TEST FAIL: XOR has invalid number of output neurons");
+		}
+		if(outputs[0] > 0){
+			System.out.println("UNIT TEST FAIL: XOR produced wrong output for -1 -1");
+		}
+		double[] inputs2 = {1,-1};
+		if(nnet3.feedForward(inputs2)[0] < 0){
+			System.out.println("UNIT TEST FAIL: XOR produced wrong output for 1 -1");
+		}
+		double[] inputs3 = {-1,1};
+		if(nnet3.feedForward(inputs3)[0] < 0){
+			System.out.println("UNIT TEST FAIL: XOR produced wrong output for -1 1");
+		}
+		double[] inputs4 = {1,1};
+		if(nnet3.feedForward(inputs4)[0] > 0){
+			System.out.println("UNIT TEST FAIL: XOR produced wrong output for 1 1");
+		}
+		
+		NeuralNetwork nnet4 = FileHandler.readNeuralNetwork("CUBE");
+		if(nnet4 == null){
+			System.out.println("UNIT TEST FAIL: CUBE unable to be read from file");
+		}
+		
+		System.out.println("UNIT TEST COMPLETE");
 	}
 	
 	private static void printOptions() {
-		System.out.println("CPSC 371 - Project Phase #1: AStarSearch of Rubik's Cube"); 
-		System.out.println("------------------------------------------------------");
+		System.out.println("CPSC 371 - Project Phase #2: Solving 2x2x2 with Neural Network"); 
+		System.out.println("--------------------------------------------------------------");
+		System.out.println("You can substitute XOR for CUBE");
 		System.out.println("");
-		System.out.println("Enter 'create 3' 	to create a 3x3x3 cube in new window");
-		System.out.println("Enter 'scramble 10'		to scramble the cube with 10 random moves");
-		System.out.println("Enter 'move F U' 	to apply an F and U move on the cube. ");
-		System.out.println("Enter 'solve'	 	to search for a solution");
-		System.out.println("Enter 'unit' 		to run Unit Test Suite");
-		System.out.println("Enter 'train' 		to run the experiment. Produces data.csv");
-		System.out.println("Enter 'help' 		to receive a list of possible moves");
-		System.out.println("Enter 'quit' 		to quit the program");
+		System.out.println("Enter 'traindata XOR'	to run an experiment creating training data.");
+		System.out.println("Enter 'create XOR'		to create a neural network");
+		System.out.println("Enter 'train'			to train current neural network");
+		System.out.println("Enter 'test'			to test the current neural network");
+		System.out.println("Enter 'save'			to save current neural network");
+		System.out.println("Enter 'load XOR'		to load an optimized neural network");
+		System.out.println("Enter 'unit' 			to run Unit Test Suite");
+		System.out.println("Enter 'help' 			to receive a list of possible moves");
+		System.out.println("Enter 'quit' 			to quit the program");
+	}
+	
+	private static void experiment(){
+		int[] hiddenLayerSize = 	{54};
+//		int[] hiddenLayerSize = 	{42, 48, 54, 60, 66};
+		double[] learningRate = 	{0.002, 0.004, 0.005, 0.006, 0.08};
+//		double[] learningRate = 	{0.005};
+//		int[] trainingIterations = 	{100000};
+		int[] trainingIterations =  {5000, 10000, 25000, 50000, 100000};
+		
+		int TRAINING_EPOCHS = 10;
+		int[] hidSize = new int[2];
+		
+		File f = new File("new_data_triple_2_3.csv");
+		try {
+			f.createNewFile();
+			PrintWriter pw = new PrintWriter(f);
+			pw.println(Arrays.toString(hiddenLayerSize));
+			pw.println(Arrays.toString(learningRate));
+			pw.println(Arrays.toString(trainingIterations));
+			
+			for(int i = 0; i < hiddenLayerSize.length; i++){
+				int HIDDEN_LAYER_SIZE = hiddenLayerSize[i];
+				hidSize[0] = HIDDEN_LAYER_SIZE;
+				
+				for (int j = 0; j < learningRate.length; j++) {
+					double LEARNING_RATE = learningRate[j];
+					for (int k = 0; k < trainingIterations.length; k++) {
+						int TRAINING_ITERATIONS = trainingIterations[k];
+
+						System.out.println(i + " " + j + " " + k);
+//						pw.print(i + " " + j + " " + k);;
+
+						NeuralNetwork nn = new NeuralNetwork(new Cube(2), 4 * 6 * 3, 4, 1, hidSize);
+						ArrayList<TrainingData> training = FileHandler
+								.readTrainingData("CUBE");
+						ArrayList<TrainingData> testing = FileHandler
+								.readTrainingData("CUBE");
+						double err = StochasticBackPropagation.runForMinimum(nn, training, testing,
+								LEARNING_RATE, TRAINING_ITERATIONS, TRAINING_EPOCHS);
+						pw.print(err + ",");
+
+					}
+					pw.println();
+				}
+				pw.println();
+			}
+			System.out.println("FILE DONE");
+			pw.flush();
+			pw.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
 	}
 }

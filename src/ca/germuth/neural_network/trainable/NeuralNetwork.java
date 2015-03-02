@@ -1,10 +1,14 @@
-package ca.germuth.neural_network;
+package ca.germuth.neural_network.trainable;
 
 import java.util.ArrayList;
 import java.util.Random;
 
 import ca.germuth.neural_network.solvable.Solvable;
-
+/**
+ * Neural Network
+ * 
+ * @author Aaron
+ */
 public class NeuralNetwork implements Trainable{
 	//Network squashes all values to inbetween -A and A
 	//allows the network to handle massive inputs
@@ -51,6 +55,41 @@ public class NeuralNetwork implements Trainable{
 	public NeuralNetwork(Solvable solvable, int numInput, int numOutput, int numHiddenLayer, int[] hiddenLayerSize){
 		this.solveable = solvable;
 		
+		init(numInput,numOutput, numHiddenLayer, hiddenLayerSize);
+	}
+	
+	public NeuralNetwork(Solvable solvable, ArrayList<Integer> layerSizes, 
+			ArrayList<Double> edgeWeights){
+		int numInput = layerSizes.get(0);
+		int numOutput = layerSizes.get( layerSizes.size() - 1);
+		int numHiddenLayer = layerSizes.size() - 2;
+		int[] hiddenLayerSize = new int[numHiddenLayer];
+		for(int i = 1; i < layerSizes.size() - 1; i++){
+			hiddenLayerSize[i - 1] = layerSizes.get(i);
+		}
+		
+		this.solveable = solvable;
+		init(numInput, numOutput, numHiddenLayer, hiddenLayerSize);
+		
+		int index = 0;
+		//load edge values
+		for(int i = 0; i < networkEdgeWeights.size(); i++){
+			double[][] arr = networkEdgeWeights.get(i);
+			for(int j = 0; j < arr.length; j++){
+				for(int k = 0; k < arr[j].length; k++){
+					arr[j][k] = edgeWeights.get(index++);
+				}
+			}
+		}
+		for(int i = 0; i < toBiasEdgeWeights.size(); i++){
+			double[] toBias = toBiasEdgeWeights.get(i);
+			for(int j = 0; j < toBias.length; j++){
+				toBias[j] = edgeWeights.get(index++);
+			}
+		}
+	}
+	
+	public void init(int numInput, int numOutput, int numHiddenLayer, int[] hiddenLayerSize){
 		this.networkEdgeWeights = new ArrayList<double[][]>();
 		//add input to first hidden layer
 		this.networkEdgeWeights.add(new double[numInput][hiddenLayerSize[0]]);
@@ -79,17 +118,7 @@ public class NeuralNetwork implements Trainable{
 			latestACT.add(new double[getLayerSize(a)]);
 		}
 	}
-	
-	// net input = input
-	// act input = net input
 
-	// net hidden = sum( Wji*ACTi + Wjb*Bias)
-	// act hidden = A * tanh(B * NETj)
-
-	// net output = sum( Wkj*ACTj + Wkb*Bias)
-	// act output = A * tanh(B * NETk)
-
-	// return act output
 	@Override
 	public double[] feedForward(double[] input) {
 		//make sure it is exactly the same length
@@ -131,6 +160,34 @@ public class NeuralNetwork implements Trainable{
 	}
 	
 	
+	public ArrayList<String> toFile(){
+		ArrayList<String> file = new ArrayList<String>();
+		file.add("Neural Network:");
+		String layers = "";
+		for(int i = 0; i < this.getNumLayers(); i++){
+			layers += this.getLayerSize(i) + ",";
+		}
+		file.add(layers);
+		
+		String weights = "";
+		for(int i = 0; i < networkEdgeWeights.size(); i++){
+			double[][] arr = networkEdgeWeights.get(i);
+			for(int j = 0; j < arr.length; j++){
+				for(int k = 0; k < arr[j].length; k++){
+					weights += arr[j][k] + ",";
+				}
+			}
+		}
+		for(int i = 0; i < toBiasEdgeWeights.size(); i++){
+			double[] toBias = toBiasEdgeWeights.get(i);
+			for(int j = 0; j < toBias.length; j++){
+				weights += toBias[j] + ",";
+			}
+		}
+		file.add(weights);
+		return file;
+	}
+	
 	@Override
 	public void randomizeAllEdgeWeights() {
 		for(double[][] layerEdges: this.networkEdgeWeights){
@@ -165,12 +222,29 @@ public class NeuralNetwork implements Trainable{
 		return hiddenToBiasEdges[j];
 	}
 	
-	//TODO j2Layer not even required though...
-	//TODO also are my hidden layers backwards here...
 	@Override
 	public double getHiddenToHiddenEW(int j1, int j1Layer, int j2, int j2Layer){
 		double [][] hiddenToHiddenEdges = this.networkEdgeWeights.get(j1Layer);
 		return hiddenToHiddenEdges[j1][j2];
+	}
+	
+	@Override
+	public double getEW(int a, int aLayer, int b, int bLayer) {
+		if(aLayer + 1 != bLayer){
+			throw new IllegalArgumentException("Layers must satisify the following: A + 1 = B");
+		}
+		//input to hidden
+		if(aLayer == 0){
+			return getHiddenToInputEW(b, a);
+		}
+		//last hidden to output
+		if(bLayer == this.getNumLayers() - 1){
+			return getOuputToHiddenEW(b, a);
+		}
+		//hidden to hidden
+		else{
+			return getHiddenToHiddenEW(a, aLayer, b, bLayer);
+		}
 	}
 	
 	// Returns random value in [-1, 1]
@@ -292,9 +366,31 @@ public class NeuralNetwork implements Trainable{
 	public void offsetHiddenToHiddenEW(int j1, int j1Layer, int j2, int j2Layer, double offset) {
 		this.networkEdgeWeights.get(j1Layer)[j1][j2] += offset;
 	}
+	
+	@Override
+	public void offsetEW(int a, int aLayer, int b, int bLayer, double offset) {
+		if(aLayer + 1!= bLayer){
+			throw new IllegalArgumentException("Layers must satisify the following: A + 1 = B");
+		}
+		//input to hidden
+		if(aLayer == 0){
+			offsetHiddenToInputEW(b, a, offset);
+		}
+		//last hidden to output
+		else if(bLayer == this.getNumLayers() - 1){
+			offsetOuputToHiddenEW(b, a, offset);
+		}
+		//hidden to hidden
+		else{
+			offsetHiddenToHiddenEW(a, aLayer, b, bLayer, offset);
+		}
+	}
 
 	@Override
 	public Solvable getSolvable() {
 		return this.solveable;
+	}
+	public void setSolveable(Solvable solveable) {
+		this.solveable = solveable;
 	}
 }

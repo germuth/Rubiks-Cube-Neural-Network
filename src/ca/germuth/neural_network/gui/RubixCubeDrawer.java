@@ -2,8 +2,8 @@ package ca.germuth.neural_network.gui;
 
 import java.util.ArrayList;
 
-import ca.germuth.neural_network.Cube;
-import ca.germuth.neural_network.Face;
+import ca.germuth.neural_network.solvable.cube.Cube;
+import ca.germuth.neural_network.solvable.cube.Face;
 /**
  * RubixCubeDrawer
  * 

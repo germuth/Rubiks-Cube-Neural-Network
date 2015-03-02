@@ -1,9 +1,10 @@
-package ca.germuth.neural_network;
+package ca.germuth.neural_network.solvable.cube;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
 
+import ca.germuth.neural_network.Utils;
 import ca.germuth.neural_network.search.Searchable;
 import ca.germuth.neural_network.solvable.Solvable;
 

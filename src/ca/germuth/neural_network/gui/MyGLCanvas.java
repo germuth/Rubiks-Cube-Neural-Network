@@ -10,7 +10,7 @@ import javax.media.opengl.GLEventListener;
 import javax.media.opengl.awt.GLCanvas;
 import javax.media.opengl.glu.GLU;
 
-import ca.germuth.neural_network.Cube;
+import ca.germuth.neural_network.solvable.cube.Cube;
 
 import com.jogamp.opengl.util.FPSAnimator;
 /**

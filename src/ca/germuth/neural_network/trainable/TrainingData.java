@@ -1,4 +1,4 @@
-package ca.germuth.neural_network;
+package ca.germuth.neural_network.trainable;
 
 public class TrainingData {
 	private String input;

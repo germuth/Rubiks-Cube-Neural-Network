@@ -1,4 +1,4 @@
-package ca.germuth.neural_network;
+package ca.germuth.neural_network.trainable;
 
 import ca.germuth.neural_network.solvable.Solvable;
 
@@ -11,7 +11,6 @@ public interface Trainable {
 	public int getNumLayers();
 	public int getLayerSize(int layer); 
 	
-	//maybe this???
 	public double getNET(int i, int layer);
 	public double getACT(int i, int layer);
 	
@@ -28,11 +27,14 @@ public interface Trainable {
 	public double getHiddenToInputEW(int j, int i);
 	public double getBiasToHiddenEW(int j, int jLayer);
 	public double getHiddenToHiddenEW(int j1, int j1Layer, int j2, int j2Layer);
+	public double getEW(int a, int aLayer, int b, int bLayer);
+	
 	public void offsetOuputToHiddenEW(int k, int j, double offset);
 	public void offsetOutputToBiasEW(int k, double offset);
 	public void offsetHiddenToInputEW(int j, int i, double offset);
 	public void offsetBiasToHiddenEW(int j, int jLayer, double offset);
 	public void offsetHiddenToHiddenEW(int j1, int j1Layer, int j2, int j2Layer, double offset);
+	public void offsetEW(int a, int aLayer, int b, int bLayer, double offset);
 	
 	public void randomizeAllEdgeWeights();
 }

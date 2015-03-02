@@ -11,7 +11,6 @@ public class XOR implements Solvable{
 		return in;
 	}
 
-	//TODO for now
 	@Override
 	public double[] mapTrainingOutput(String trainOutput) {
 		double[] out = new double[1];
