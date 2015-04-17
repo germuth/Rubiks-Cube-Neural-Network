@@ -25,12 +25,31 @@ import ca.germuth.neural_network.trainable.NeuralNetwork;
 import ca.germuth.neural_network.trainable.StochasticBackPropagation;
 import ca.germuth.neural_network.trainable.TrainingData;
 /**
- * CPSC 371 Project Phase 2
+ * CPSC 371 Project Phase 3
  * Main.java
  * 
- * February 27th, 2015 
+ * April 17th, 2015 
  * @author Aaron Germuth
  */
+
+//TODO
+//implement phase1 and phase2 marks
+//large number of epochs like 1000 for optimal
+//over a million iterations
+//less hidden neurons, 30 prob too much
+//higher learning rate 0.1
+//implement momentum, weight decay, intialization (easiest one)
+
+//Phase 3
+//run genetic algorithm on population of 2 2 1 networks
+	//implement probability of selection
+	//
+//implement other things
+//start to run experiments the smart way
+//write document
+//hand in
+
+
 public class Main {
 	final static int PIXEL_WIDTH = 480;
 	
