@@ -71,22 +71,7 @@ public class NeuralNetwork implements Trainable{
 		this.solveable = solvable;
 		init(numInput, numOutput, numHiddenLayer, hiddenLayerSize);
 		
-		int index = 0;
-		//load edge values
-		for(int i = 0; i < networkEdgeWeights.size(); i++){
-			double[][] arr = networkEdgeWeights.get(i);
-			for(int j = 0; j < arr.length; j++){
-				for(int k = 0; k < arr[j].length; k++){
-					arr[j][k] = edgeWeights.get(index++);
-				}
-			}
-		}
-		for(int i = 0; i < toBiasEdgeWeights.size(); i++){
-			double[] toBias = toBiasEdgeWeights.get(i);
-			for(int j = 0; j < toBias.length; j++){
-				toBias[j] = edgeWeights.get(index++);
-			}
-		}
+		updateEdgeWeights(edgeWeights);
 	}
 	
 	public void init(int numInput, int numOutput, int numHiddenLayer, int[] hiddenLayerSize){
@@ -169,6 +154,7 @@ public class NeuralNetwork implements Trainable{
 		}
 		file.add(layers);
 		
+		//TODO use weightList()
 		String weights = "";
 		for(int i = 0; i < networkEdgeWeights.size(); i++){
 			double[][] arr = networkEdgeWeights.get(i);
@@ -186,6 +172,61 @@ public class NeuralNetwork implements Trainable{
 		}
 		file.add(weights);
 		return file;
+	}
+	
+	public ArrayList<Integer> layerSizes(){
+		ArrayList<Integer> layerSizes = new ArrayList<Integer>();
+		for(int i = 0; i < this.getNumLayers(); i++){
+			layerSizes.add( this.getLayerSize(i) );
+		}
+		return layerSizes;
+	}
+	
+	public int[] hiddenLayerSizes(){
+		int[] layerSizes = new int[getNumLayers() - 2];
+		int index = 0;
+		for(int i = 1; i < this.getNumLayers() - 1; i++){
+			layerSizes[index++] = this.getLayerSize(i);
+		}
+		return layerSizes;
+	}
+	
+	public void updateEdgeWeights(ArrayList<Double> edgeWeights){
+		int index = 0;
+		//load edge values
+		for(int i = 0; i < networkEdgeWeights.size(); i++){
+			double[][] arr = networkEdgeWeights.get(i);
+			for(int j = 0; j < arr.length; j++){
+				for(int k = 0; k < arr[j].length; k++){
+					arr[j][k] = edgeWeights.get(index++);
+				}
+			}
+		}
+		for(int i = 0; i < toBiasEdgeWeights.size(); i++){
+			double[] toBias = toBiasEdgeWeights.get(i);
+			for(int j = 0; j < toBias.length; j++){
+				toBias[j] = edgeWeights.get(index++);
+			}
+		}
+	}
+	
+	public ArrayList<Double> weightList(){
+		ArrayList<Double> weights = new ArrayList<Double>();
+		for(int i = 0; i < networkEdgeWeights.size(); i++){
+			double[][] arr = networkEdgeWeights.get(i);
+			for(int j = 0; j < arr.length; j++){
+				for(int k = 0; k < arr[j].length; k++){
+					weights.add(arr[j][k]);
+				}
+			}
+		}
+		for(int i = 0; i < toBiasEdgeWeights.size(); i++){
+			double[] toBias = toBiasEdgeWeights.get(i);
+			for(int j = 0; j < toBias.length; j++){
+				weights.add(toBias[j]);
+			}
+		}
+		return weights;
 	}
 	
 	@Override

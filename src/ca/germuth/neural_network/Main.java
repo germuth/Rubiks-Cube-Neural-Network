@@ -15,6 +15,9 @@ import javax.media.opengl.GLCapabilities;
 import javax.media.opengl.GLProfile;
 import javax.swing.JFrame;
 
+import ca.germuth.neural_network.evolution.Evolvable;
+import ca.germuth.neural_network.evolution.EvolvableNeuralNetwork;
+import ca.germuth.neural_network.evolution.GeneticAlgorithm;
 import ca.germuth.neural_network.gui.MyGLCanvas;
 import ca.germuth.neural_network.search.SearchFacade;
 import ca.germuth.neural_network.search.SearchNode;
@@ -49,7 +52,9 @@ import ca.germuth.neural_network.trainable.TrainingData;
 //write document
 //hand in
 
-
+//TODO
+//delete these comments
+//adjust numbers in Genetic Algorithm
 public class Main {
 	final static int PIXEL_WIDTH = 480;
 	
@@ -68,10 +73,14 @@ public class Main {
 			switch(lineScanner.next().toLowerCase()){
 				case "create":
 					createNeuralNetwork(lineScanner.next(), s); break;
+				case "evolve":
+					evolveNeuralNetworks(); break;
+				case "config":
+					configGA(s); break;
 				case "solve":
 					solveCube(); break;
 				case "unit":
-					unitTest(); break;
+					UnitTest.testAll(); break;
 				case "traindata":
 					trainData(lineScanner.next()); break;
 				case "train":
@@ -115,8 +124,18 @@ public class Main {
 					}
 					System.out.println("Loaded successfully");
 					break;
-				case "experiment":
-					experiment(); break;
+				case "experiment1":
+					experiment1(); break;
+				case "experimenta":
+					experimentA(); break;
+				case "experimentb":
+					experimentB(); break;
+				case "experimentc":
+					experimentC(); break;
+				case "experimentd":
+					experimentD(); break;
+				case "experimente":
+					experimentE(); break;
 				case "help":
 					System.out.println("There are 6 sides on a cube. Up, Down, Front, Back, Left, and Right");
 					System.out.println("The default turn around these faces is clockwise. Adding a ' reverses this");
@@ -139,23 +158,61 @@ public class Main {
 	
 	private static void createNeuralNetwork(String type, Scanner scan){
 		
+		System.out.println("Please Enter Hidden Layer Config: ('12 12' makes two layers of size 12)");
+		System.out.println("Recommend 36 for Cube and 2 for XOR");
+		String[] strin = scan.nextLine().split(" ");
+		int[] sizes = new int[strin.length];
+		for(int i = 0; i < strin.length; i++){
+			sizes[i] = Integer.parseInt(strin[i]);
+		}
 		if(type.equals("CUBE")){
-			System.out.println("Please Enter Hidden Layer Config: ('12 12' makes two layers of size 12)");
-			System.out.println("Recommend 36");
-			String[] strin = scan.nextLine().split(" ");
-			int[] sizes = new int[strin.length];
-			for(int i = 0; i < strin.length; i++){
-				sizes[i] = Integer.parseInt(strin[i]);
-			}
 			createCube(2);
 			nn = new NeuralNetwork(cube, 4*6*3, 4, sizes.length, sizes);
 			nnType = "CUBE";
 		}else{
-			int[] arr = {2};
-			nn = new NeuralNetwork(new XOR(), 2, 1, 1, arr);
+			nn = new NeuralNetwork(new XOR(), 2, 1, sizes.length, sizes);
 			nnType = "XOR";
 		}
 		System.out.println("Neural Network Created");
+	}
+	
+	private static void evolveNeuralNetworks(){
+		//TODO NOT JUST XOR
+		ArrayList<TrainingData> training = FileHandler.readTrainingData("XOR");
+		
+		ArrayList<Evolvable> list = new ArrayList<Evolvable>();
+		int[] hiddenNodes = {2};
+		for(int i = 0; i < GeneticAlgorithm.getPOPULATION_SIZE(); i++){
+			EvolvableNeuralNetwork next;
+			if(nn == null){
+				next = new EvolvableNeuralNetwork(new XOR(), 2, 1, 1, hiddenNodes);
+			}else{
+				next = new EvolvableNeuralNetwork(new XOR(), 2, 1, nn.getNumLayers() - 2, nn.hiddenLayerSizes());
+			}
+			next.randomizeAllEdgeWeights();
+			next.calcFitness(training);
+			list.add(next);
+		}
+		
+		EvolvableNeuralNetwork evolved = (EvolvableNeuralNetwork) GeneticAlgorithm.run(list, training);
+		evolved.toNetwork();
+		nn = evolved;
+		System.out.println("Evolution Complete");
+		
+	}
+	
+	private static void configGA(Scanner s){
+		System.out.println("Please Enter Population Size (Recommended:400):");
+		GeneticAlgorithm.setPOPULATION_SIZE(s.nextInt());
+		System.out.println("Please Enter GA Iterations (Recommended: 500):");
+		GeneticAlgorithm.setITERATIONS(s.nextInt());
+		System.out.println("Please Enter Elite % (Recommended: 0.2):");
+		GeneticAlgorithm.setPOPULATION_ELITE_PERCENT(s.nextDouble() / 100);
+		System.out.println("Please Enter Mutation % (Recommended: 0.4):");
+		GeneticAlgorithm.setPOPULATION_MUTATION_PERCENT(s.nextDouble() / 100);
+		System.out.println("Please Enter CrossOver % (Recommended: 0.4):");
+		GeneticAlgorithm.setPOPULATION_CROSSOVER_PERCENT(s.nextDouble() / 100);
+		System.out.println("Genetic Algorithm Configured");
 	}
 	
 	private static void trainData(String type) {
@@ -297,120 +354,77 @@ public class Main {
 		return sb.toString();
 	}
 	
-	private static void unitTest(){
-		ArrayList<TrainingData> trainingXOR = FileHandler.readTrainingData("XOR");
-		ArrayList<TrainingData> testingXOR = FileHandler.readTrainingData("XOR");
-		ArrayList<TrainingData> training = FileHandler.readTrainingData("CUBE");
-		ArrayList<TrainingData> testing = FileHandler.readTrainingData("CUBE");
-		
-		int[] arr = {2};
-		NeuralNetwork nnet = new NeuralNetwork(new XOR(), 2, 1, 1, arr);
-		double err = StochasticBackPropagation.runForThreshold(nnet, trainingXOR, testingXOR, 0.000001, 0.01, 50000, 25);
-		System.out.println(err);
-		if(err > 0.001){
-			System.out.println("UNIT TEST FAIL: XOR had bad error");
-		}
-		
-		int[] arr2 = {12};
-		NeuralNetwork nnet2 = new NeuralNetwork(new Cube(2), 4*6*3, 4, 1, arr2);
-		err = StochasticBackPropagation.runForThreshold(nnet2, training, testing, 1200, 0.01, 50000, 25);
-		if(err > 3000){
-			System.out.println("UNIT TEST FAIL: CUBE had bad error");
-		}
-		
-		NeuralNetwork nnet3 = FileHandler.readNeuralNetwork("XOR");
-		if(nnet3 == null){
-			System.out.println("UNIT TEST FAIL: XOR unable to be read from file");
-		}
-		double[] inputs = {-1, -1};
-		double[] outputs = nnet3.feedForward(inputs);
-		if(outputs.length != 1){
-			System.out.println("UNIT TEST FAIL: XOR has invalid number of output neurons");
-		}
-		if(outputs[0] > 0){
-			System.out.println("UNIT TEST FAIL: XOR produced wrong output for -1 -1");
-		}
-		double[] inputs2 = {1,-1};
-		if(nnet3.feedForward(inputs2)[0] < 0){
-			System.out.println("UNIT TEST FAIL: XOR produced wrong output for 1 -1");
-		}
-		double[] inputs3 = {-1,1};
-		if(nnet3.feedForward(inputs3)[0] < 0){
-			System.out.println("UNIT TEST FAIL: XOR produced wrong output for -1 1");
-		}
-		double[] inputs4 = {1,1};
-		if(nnet3.feedForward(inputs4)[0] > 0){
-			System.out.println("UNIT TEST FAIL: XOR produced wrong output for 1 1");
-		}
-		
-		NeuralNetwork nnet4 = FileHandler.readNeuralNetwork("CUBE");
-		if(nnet4 == null){
-			System.out.println("UNIT TEST FAIL: CUBE unable to be read from file");
-		}
-		
-		System.out.println("UNIT TEST COMPLETE");
-	}
-	
 	private static void printOptions() {
-		System.out.println("CPSC 371 - Project Phase #2: Solving 2x2x2 with Neural Network"); 
+		System.out.println("CPSC 371 - Project Phase #3: Evolving Neural Networks towards XOR"); 
 		System.out.println("--------------------------------------------------------------");
-		System.out.println("You can substitute XOR for CUBE");
+		System.out.println("The current training data is stored in XORdata.csv");
 		System.out.println("");
-		System.out.println("Enter 'traindata XOR'	to run an experiment creating training data.");
+		System.out.println("Enter 'traindata XOR'	to run an experiment creating training data");
 		System.out.println("Enter 'create XOR'		to create a neural network");
+		System.out.println("Enter 'evolve'			to evolve many neural networks and use best");
+		System.out.println("Enter 'config'			to configure the Genetic Algorithm Parameters");
 		System.out.println("Enter 'train'			to train current neural network");
 		System.out.println("Enter 'test'			to test the current neural network");
-		System.out.println("Enter 'save'			to save current neural network");
-		System.out.println("Enter 'load XOR'		to load an optimized neural network");
+		System.out.println("Enter 'experimentX		to run experiment X. X = one of [1, A, B, C, D, or E]");
+		System.out.println("Enter 'save'			to save current neural network to XORNeuralNetwork.csv");
+		System.out.println("Enter 'load XOR'		to load an optimized neural network from XORNeuralNetwork.csv");
 		System.out.println("Enter 'unit' 			to run Unit Test Suite");
-		System.out.println("Enter 'help' 			to receive a list of possible moves");
+//		System.out.println("Enter 'help' 			to receive a list of possible moves");
 		System.out.println("Enter 'quit' 			to quit the program");
 	}
 	
-	private static void experiment(){
-		int[] hiddenLayerSize = 	{54};
-//		int[] hiddenLayerSize = 	{42, 48, 54, 60, 66};
-		double[] learningRate = 	{0.002, 0.004, 0.005, 0.006, 0.08};
-//		double[] learningRate = 	{0.005};
-//		int[] trainingIterations = 	{100000};
-		int[] trainingIterations =  {5000, 10000, 25000, 50000, 100000};
-		
-		int TRAINING_EPOCHS = 10;
-		int[] hidSize = new int[2];
-		
-		File f = new File("new_data_triple_2_3.csv");
+	private static void runExperiment(String experimentName, int[] popSize, int[] iterations, double[] elite_percent, double[] mutation_percent, int repeats){
+		int[] hid = {2};
+		File f = new File(experimentName + ".csv");
+		PrintWriter pw = null;
 		try {
 			f.createNewFile();
-			PrintWriter pw = new PrintWriter(f);
-			pw.println(Arrays.toString(hiddenLayerSize));
-			pw.println(Arrays.toString(learningRate));
-			pw.println(Arrays.toString(trainingIterations));
-			
-			for(int i = 0; i < hiddenLayerSize.length; i++){
-				int HIDDEN_LAYER_SIZE = hiddenLayerSize[i];
-				hidSize[0] = HIDDEN_LAYER_SIZE;
-				
-				for (int j = 0; j < learningRate.length; j++) {
-					double LEARNING_RATE = learningRate[j];
-					for (int k = 0; k < trainingIterations.length; k++) {
-						int TRAINING_ITERATIONS = trainingIterations[k];
+			pw = new PrintWriter(f);
 
-						System.out.println(i + " " + j + " " + k);
-//						pw.print(i + " " + j + " " + k);;
+			ArrayList<TrainingData> training = FileHandler.readTrainingData("XOR");
 
-						NeuralNetwork nn = new NeuralNetwork(new Cube(2), 4 * 6 * 3, 4, 1, hidSize);
-						ArrayList<TrainingData> training = FileHandler
-								.readTrainingData("CUBE");
-						ArrayList<TrainingData> testing = FileHandler
-								.readTrainingData("CUBE");
-						double err = StochasticBackPropagation.runForMinimum(nn, training, testing,
-								LEARNING_RATE, TRAINING_ITERATIONS, TRAINING_EPOCHS);
-						pw.print(err + ",");
+			for (int i = 0; i < popSize.length; i++) {
+				int POPULATION_SIZE = popSize[i];
+				GeneticAlgorithm.setPOPULATION_SIZE(POPULATION_SIZE);
+				for (int j = 0; j < iterations.length; j++) {
+					int ITERATIONS = iterations[j];
+					GeneticAlgorithm.setITERATIONS(ITERATIONS);
+					for (int k = 0; k < elite_percent.length; k++) {
+						double ELITE = elite_percent[k];
+						GeneticAlgorithm.setPOPULATION_ELITE_PERCENT(ELITE);
+						for (int m = 0; m < mutation_percent.length; m++) {
+							double MUTATION = mutation_percent[m];
+							if (ELITE + MUTATION > 1.0) {
+								continue;
+							}
+							double CROSSOVER = 1.0 - ELITE - MUTATION;
+							GeneticAlgorithm.setPOPULATION_MUTATION_PERCENT(MUTATION);
+							GeneticAlgorithm.setPOPULATION_CROSSOVER_PERCENT(CROSSOVER);
+							System.out.println(i + " " + j + " " + k + " " + m);
+							
+							//evaluating each parameters by the best run over 10 tries
+							//average would be viable option as well for more consistent performance
+							double bestFitness = Double.MIN_VALUE;
+							for (int r = 0; r < repeats; r++) {
 
+								ArrayList<Evolvable> list = new ArrayList<Evolvable>();
+								for (int x = 0; x < GeneticAlgorithm.getPOPULATION_SIZE(); x++) {
+									EvolvableNeuralNetwork next = new EvolvableNeuralNetwork(new XOR(), 2, 1, 1, hid);
+									next.randomizeAllEdgeWeights();
+									list.add(next);
+								}
+
+								EvolvableNeuralNetwork evolved = (EvolvableNeuralNetwork) GeneticAlgorithm.run(list, training);
+								evolved.toNetwork();
+								if (evolved.getFitness() > bestFitness) {
+									bestFitness = evolved.getFitness();
+								}
+							}
+							pw.print(bestFitness + " " + POPULATION_SIZE + "-" + ITERATIONS + "-"
+									+ ELITE + "-" + MUTATION + "-" + CROSSOVER + ",");
+						}
 					}
-					pw.println();
 				}
-				pw.println();
 			}
 			System.out.println("FILE DONE");
 			pw.flush();
@@ -419,7 +433,144 @@ public class Main {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally{
+			if(pw != null){
+				pw.flush();
+				pw.close();				
+			}
 		}
+	}
+	
+	/**
+	 * Experiment 1 Is Used to search the paramater space, looking for 5 promising regions 
+	 * to further investigate in experiment A-E
+	 */
+	private static void experiment1() {
+		//Finding The Top 5 combinations of parameters
+		int[] popSize = 			{20, 50, 100, 200, 500};
+		int[] iterations = 			{20, 50, 100, 200, 500};
+		double[] elite_percent = 	{0.10, 0.20, 0.50, 0.80};
+		double[] mutation_percent = {0.10, 0.20, 0.50, 0.80};
+		int repeats = 10;
+		runExperiment("GA_XOR_experiment_1", popSize, iterations, elite_percent, mutation_percent, repeats);
+	}
+	
+	/**
+	 * Data Point 1. 
+	 * Parameters: 		popSize, iter, elite%, mutation%, crossover% 				
+	 * Centered Around: 500, 500, 0.30, 0.40, 0.20
+	 */
+	private static void experimentA() {
+		int[] center_pop = 			{500};
+		int[] center_iter =			{500};
+		double[] center_elite = 	{0.30};
+		double[] center_mutation = 	{0.40};
 		
+		int[] popSize = 			{300, 400, 500, 600, 700, 800, 900, 1000};
+		int[] iterations = 			{300, 400, 500, 600, 700, 800, 900, 1000};
+		double[] elite_percent = 	{0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50};
+		int repeats = 10;
+		//fitness(Inverse of Accuracy) vs. Number of Generations
+		runExperiment("GA_XOR_experiment_A1", center_pop, iterations, center_elite, center_mutation, repeats);
+		//fitness(Inverse of Accuracy) vs. Number of Genomes
+		runExperiment("GA_XOR_experiment_A2", popSize, center_iter, center_elite, center_mutation, repeats);
+		//fitness(Inverse of Accuracy) vs. % Elite
+		runExperiment("GA_XOR_experiment_A3", center_pop, center_iter, elite_percent, center_mutation, repeats);
+	}
+	
+	/**
+	 * Data Point 2. 
+	 * Parameters: 		popSize, iter, elite%, mutation%, crossover% 				
+	 * Centered Around: 500, 500, 0.20, 0.50, 0.30
+	 */
+	private static void experimentB() {
+		//Data Point 2. Centered Around 500, 500, 0.20, 0.50, 0.30
+		int[] center_pop = 			{500};
+		int[] center_iter =			{500};
+		double[] center_elite = 	{0.20};
+		double[] center_mutation = 	{0.50};
+		
+		int[] popSize = 			{300, 400, 500, 600, 700, 800, 900, 1000};
+		int[] iterations = 			{300, 400, 500, 600, 700, 800, 900, 1000};
+		double[] elite_percent = 	{0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40};
+		int repeats = 10;
+		//fitness(Inverse of Accuracy) vs. Number of Generations
+		runExperiment("GA_XOR_experiment_B1", center_pop, iterations, center_elite, center_mutation, repeats);
+		//fitness(Inverse of Accuracy) vs. Number of Genomes
+		runExperiment("GA_XOR_experiment_B2", popSize, center_iter, center_elite, center_mutation, repeats);
+		//fitness(Inverse of Accuracy) vs. % Elite
+		runExperiment("GA_XOR_experiment_B3", center_pop, center_iter, elite_percent, center_mutation, repeats);
+	}
+	
+	/**
+	 * Data Point 3. 
+	 * Parameters: 		popSize, iter, elite%, mutation%, crossover% 				
+	 * Centered Around: 500, 500, 0.10, 0.20, 0.70
+	 */
+	private static void experimentC() {
+		//Data Point 3. Centered Around 500, 500, 0.10, 0.20, 0.70
+		int[] center_pop = 			{500};
+		int[] center_iter =			{500};
+		double[] center_elite = 	{0.10};
+		double[] center_mutation = 	{0.20};
+		
+		int[] popSize = 			{300, 400, 500, 600, 700, 800, 900, 1000};
+		int[] iterations = 			{300, 400, 500, 600, 700, 800, 900, 1000};
+		double[] elite_percent = 	{0.01, 0.05, 0.08, 0.10, 0.12, 0.15, 0.18, 0.20, 0.25};
+		int repeats = 10;
+		//fitness(Inverse of Accuracy) vs. Number of Generations
+		runExperiment("GA_XOR_experiment_C1", center_pop, iterations, center_elite, center_mutation, repeats);
+		//fitness(Inverse of Accuracy) vs. Number of Genomes
+		runExperiment("GA_XOR_experiment_C2", popSize, center_iter, center_elite, center_mutation, repeats);
+		//fitness(Inverse of Accuracy) vs. % Elite
+		runExperiment("GA_XOR_experiment_C3", center_pop, center_iter, elite_percent, center_mutation, repeats);
+	}
+	
+	/**
+	 * Data Point 4. 
+	 * Parameters: 		popSize, iter, elite%, mutation%, crossover% 				
+	 * Centered Around: 200, 500, 0.30, 0.50, 0.10
+	 */
+	private static void experimentD() {
+		//Data Point 4. Centered Around 200, 500, 0.30, 0.50, 0.10
+		int[] center_pop = 			{200};
+		int[] center_iter =			{500};
+		double[] center_elite = 	{0.30};
+		double[] center_mutation = 	{0.50};
+		
+		int[] popSize = 			{100, 150, 180, 200, 220, 250, 300, 400, 500};
+		int[] iterations = 			{300, 400, 500, 600, 700, 800, 900, 1000};
+		double[] elite_percent = 	{0.15, 0.20, 0.22, 0.25, 0.28, 0.30, 0.35, 0.40, 0.45};
+		int repeats = 10;
+		//fitness(Inverse of Accuracy) vs. Number of Generations
+		runExperiment("GA_XOR_experiment_D1", center_pop, iterations, center_elite, center_mutation, repeats);
+		//fitness(Inverse of Accuracy) vs. Number of Genomes
+		runExperiment("GA_XOR_experiment_D2", popSize, center_iter, center_elite, center_mutation, repeats);
+		//fitness(Inverse of Accuracy) vs. % Elite
+		runExperiment("GA_XOR_experiment_D3", center_pop, center_iter, elite_percent, center_mutation, repeats);
+	}
+	
+	/**
+	 * Data Point 5. 
+	 * Parameters: 		popSize, iter, elite%, mutation%, crossover% 				
+	 * Centered Around: 200, 500, 0.30, 0.60, 0.20
+	 */
+	private static void experimentE() {
+		//Data Point 5. Centered Around 200, 500, 0.30, 0.60, 0.20
+		int[] center_pop = 			{200};
+		int[] center_iter =			{500};
+		double[] center_elite = 	{0.30};
+		double[] center_mutation = 	{0.60};
+		
+		int[] popSize = 			{100, 150, 180, 200, 220, 250, 300, 400, 500};
+		int[] iterations = 			{300, 400, 500, 600, 700, 800, 900, 1000};
+		double[] elite_percent = 	{0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50};
+		int repeats = 10;
+		//fitness(Inverse of Accuracy) vs. Number of Generations
+		runExperiment("GA_XOR_experiment_E1", center_pop, iterations, center_elite, center_mutation, repeats);
+		//fitness(Inverse of Accuracy) vs. Number of Genomes
+		runExperiment("GA_XOR_experiment_E2", popSize, center_iter, center_elite, center_mutation, repeats);
+		//fitness(Inverse of Accuracy) vs. % Elite
+		runExperiment("GA_XOR_experiment_E3", center_pop, center_iter, elite_percent, center_mutation, repeats);
 	}
 }
