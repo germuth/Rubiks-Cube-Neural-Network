@@ -79,6 +79,10 @@ public class GeneticAlgorithm {
 		
 		//mutate elite
 		for(int i = 0; i < (int)POPULATION_SIZE*POPULATION_MUTATION_PERCENT; i++){
+			//TODO this is wrong, you cannot add result back to elite
+			//then you have the chance of mutating the same genome twice
+			//need to make a new list called mutated
+			//same for crossover, because i can crossover mutated genomes
 			Evolvable random = elite.get( rng.nextInt(elite.size()) );
 			//TODO how do i do this?
 			Evolvable mutated = random.copy();

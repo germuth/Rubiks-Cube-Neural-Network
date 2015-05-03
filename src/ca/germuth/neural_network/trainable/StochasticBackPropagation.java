@@ -64,6 +64,7 @@ public class StochasticBackPropagation {
 		}
 	}
 	
+	//TODO split into more methods
 	private static void alterEdgeWeights(Trainable trainable, TrainingData trainD){
 		// randomly choose training tuple
 		// convert training data to scaled input/output, ie -> [-1, 1]
