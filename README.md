@@ -1,6 +1,8 @@
 # Using Neural Networks to Solve the Rubik's Cube
 
-
+<p align="center">
+  <img src="https://cloud.githubusercontent.com/assets/3782710/9426437/cdbf334c-48f5-11e5-8a3a-00a230deef8c.png" height="225"/>
+</p>
 
 
 This repository attempts to solve a generic size rubik's cube with a neural network.
